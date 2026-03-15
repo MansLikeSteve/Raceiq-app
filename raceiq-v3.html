@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RaceIQ — Hyrox Race Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07070a;--void:#0c0c10;--panel:#111115;--panel2:#15151a;
+  --border:#1c1c24;--mid:#262630;--muted:#4a4a58;--dim:#7878a0;--text:#e8e8f2;
+  --acid:#c8f03a;--acid2:#a8cc1a;--orange:#ff6b35;--red:#ff3d3d;
+  --green:#2feda0;--blue:#4d9eff;--purple:#9b6dff;--gold:#f5c842;
+  --fd:'Bebas Neue',sans-serif;--fm:'DM Mono',monospace;--fb:'DM Sans',sans-serif;
+  --r:3px;
+}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh;overflow-x:hidden}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9997;opacity:.6}
+
+/* LAYOUT */
+.app-shell{display:grid;grid-template-columns:224px 1fr;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{background:var(--void);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;z-index:50}
+.sb-logo{padding:22px 18px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sb-logo-text{font-family:var(--fd);font-size:28px;letter-spacing:3px;color:var(--acid);line-height:1}
+.sb-logo-sub{font-family:var(--fm);font-size:8px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.sb-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.sb-section{font-family:var(--fm);font-size:8px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;padding:10px 12px 4px;margin-top:6px}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;transition:all .15s;background:none;border:1px solid transparent;width:100%;text-align:left;color:var(--dim)}
+.ni:hover{background:var(--panel);color:var(--text)}
+.ni.active{background:rgba(200,240,58,.07);color:var(--acid);border-color:rgba(200,240,58,.15)}
+.ni-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.ni-label{font-family:var(--fm);font-size:10px;letter-spacing:1px;text-transform:uppercase;flex:1}
+.ni-badge{background:var(--acid);color:var(--bg);font-family:var(--fm);font-size:8px;padding:2px 6px;border-radius:8px;font-weight:700}
+.ni-badge.blue{background:var(--blue);color:#fff}
+.ni-badge.orange{background:var(--orange);color:#fff}
+.sb-footer{padding:12px;border-top:1px solid var(--border);flex-shrink:0}
+.tier-badge{background:linear-gradient(135deg,rgba(200,240,58,.1),rgba(200,240,58,.05));border:1px solid rgba(200,240,58,.2);padding:10px 12px;border-radius:var(--r);cursor:pointer;transition:all .2s}
+.tier-badge:hover{border-color:rgba(200,240,58,.4)}
+.tier-name{font-family:var(--fd);font-size:20px;letter-spacing:2px;color:var(--acid)}
+.tier-action{font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px}
+
+/* TOPBAR */
+.main-content{overflow-x:hidden;display:flex;flex-direction:column;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border);background:rgba(7,7,10,.94);backdrop-filter:blur(14px);position:sticky;top:0;z-index:100;flex-shrink:0}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.hamburger{display:none;background:none;border:1px solid var(--border);color:var(--text);padding:6px 10px;cursor:pointer;border-radius:var(--r);font-size:16px;line-height:1}
+.topbar-title{font-family:var(--fd);font-size:22px;letter-spacing:2px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.live-pill{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);padding:5px 11px;border-radius:20px;font-family:var(--fm);font-size:9px;color:var(--dim);letter-spacing:1px}
+.dot{width:6px;height:6px;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+.topbar-user-btn{background:var(--panel2);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:10px;padding:6px 14px;cursor:pointer;border-radius:var(--r);transition:all .2s;letter-spacing:1px}
+.topbar-user-btn:hover{border-color:var(--acid);color:var(--acid)}
+.topbar-user-btn.pro{border-color:rgba(200,240,58,.3);color:var(--acid)}
+
+/* PAGES */
+.page{display:none;padding:24px 28px 80px;flex:1;animation:fadeUp .25s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* SECTION HEADERS */
+.sec-hdr{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.sec-title{font-family:var(--fd);font-size:36px;letter-spacing:2px;line-height:1}
+.sec-tag{font-family:var(--fm);font-size:9px;letter-spacing:3px;color:var(--acid);border:1px solid rgba(200,240,58,.25);padding:3px 8px;border-radius:2px;text-transform:uppercase}
+
+/* PANELS & GRIDS */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:22px}
+.panel-sm{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px}
+.p-title{font-family:var(--fm);font-size:9px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.mb16{margin-bottom:16px}.mb20{margin-bottom:20px}.mt16{margin-top:16px}.mt20{margin-top:20px}
+
+/* STAT CARDS */
+.stat{background:var(--panel);border:1px solid var(--border);padding:18px 20px;border-radius:var(--r);position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat.c-acid::before{background:var(--acid)}.stat.c-blue::before{background:var(--blue)}
+.stat.c-green::before{background:var(--green)}.stat.c-orange::before{background:var(--orange)}
+.stat.c-purple::before{background:var(--purple)}
+.stat-n{font-family:var(--fd);font-size:40px;letter-spacing:1px;line-height:1}
+.stat-l{font-family:var(--fm);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-top:4px}
+
+/* BUTTONS */
+.btn{font-family:var(--fm);font-size:10px;letter-spacing:2px;text-transform:uppercase;border:none;padding:9px 18px;cursor:pointer;transition:all .15s;border-radius:var(--r)}
+.btn-acid{background:var(--acid);color:var(--bg);font-weight:700}
+.btn-acid:hover{background:var(--acid2);transform:translateY(-1px)}
+.btn-outline{background:none;color:var(--text);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--acid);color:var(--acid)}
+.btn-ghost{background:var(--panel2);color:var(--dim);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--mid)}
+.btn-danger{background:rgba(255,61,61,.1);color:var(--red);border:1px solid rgba(255,61,61,.2)}
+.btn-danger:hover{background:rgba(255,61,61,.2)}
+.btn-pro{background:linear-gradient(135deg,var(--acid),var(--acid2));color:var(--bg);font-weight:700}
+.btn-pro:hover{opacity:.9;transform:translateY(-1px)}
+.btn-sm{padding:6px 12px;font-size:9px}
+
+/* FORMS */
+.fg{display:flex;flex-direction:column;gap:6px}
+label{font-family:var(--fm);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+input[type=text],input[type=email],input[type=password],input[type=number],input[type=date],textarea,select{width:100%;background:var(--void);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:13px;padding:9px 12px;outline:none;border-radius:var(--r);transition:border-color .2s;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--acid)}
+textarea{resize:vertical;min-height:72px;font-family:var(--fb);font-size:13px;line-height:1.6}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M5 7L0 0h10z' fill='%234a4a58'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer}
+select option{background:var(--panel)}
+input[type=range]{width:100%;-webkit-appearance:none;height:3px;background:var(--mid);outline:none;cursor:pointer;border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--acid);cursor:pointer;border-radius:0;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%)}
+.form-row{display:grid;gap:14px;margin-bottom:14px}
+.fr2{grid-template-columns:1fr 1fr}.fr3{grid-template-columns:1fr 1fr 1fr}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px;gap:0;overflow-x:auto}
+.tab{font-family:var(--fm);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;padding:11px 16px;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--acid);border-bottom-color:var(--acid)}
+.tab-body{display:none}.tab-body.active{display:block;animation:fadeUp .2s ease}
+
+/* INFO BANNERS */
+.info-banner{background:rgba(77,158,255,.05);border:1px solid rgba(77,158,255,.2);padding:11px 16px;border-radius:var(--r);margin-bottom:18px;display:flex;gap:10px;align-items:flex-start}
+.info-banner p{font-size:12px;color:var(--dim);line-height:1.6}
+.info-banner strong{color:var(--blue)}
+.pro-gate{background:rgba(200,240,58,.04);border:1px solid rgba(200,240,58,.2);padding:20px;border-radius:var(--r);text-align:center;margin:8px 0}
+.pro-gate-icon{font-size:28px;margin-bottom:8px}
+.pro-gate-title{font-family:var(--fd);font-size:22px;letter-spacing:2px;color:var(--acid);margin-bottom:6px}
+.pro-gate-text{font-size:13px;color:var(--dim);margin-bottom:14px;line-height:1.6}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:5000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);width:90%;max-width:520px;max-height:90vh;overflow-y:auto;border-radius:var(--r);padding:28px}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-title{font-family:var(--fd);font-size:26px;letter-spacing:2px}
+.modal-x{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:var(--r);line-height:1}
+.modal-x:hover{color:var(--text);background:var(--panel2)}
+
+/* DRAWER */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:800;display:none;backdrop-filter:blur(4px)}
+.drawer-overlay.open{display:block}
+.drawer{position:fixed;left:0;top:0;bottom:0;width:272px;background:var(--void);border-right:1px solid var(--border);z-index:900;transform:translateX(-100%);transition:transform .24s cubic-bezier(.4,0,.2,1);overflow-y:auto;display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.drawer-logo{font-family:var(--fd);font-size:24px;letter-spacing:3px;color:var(--acid)}
+.drawer-x{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:var(--r)}
+.drawer-x:hover{color:var(--text)}
+.drawer-nav{flex:1;padding:10px 8px;overflow-y:auto}
+.drawer-section{font-family:var(--fm);font-size:8px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;padding:10px 12px 4px;margin-top:4px}
+.di{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r);cursor:pointer;transition:all .15s;background:none;border:1px solid transparent;width:100%;text-align:left;color:var(--dim)}
+.di:hover{background:var(--panel);color:var(--text)}
+.di.active{background:rgba(200,240,58,.07);color:var(--acid);border-color:rgba(200,240,58,.15)}
+.di-icon{font-size:15px;width:20px;text-align:center}
+.di-label{font-family:var(--fm);font-size:10px;letter-spacing:1px;text-transform:uppercase;flex:1}
+.di-badge{background:var(--acid);color:var(--bg);font-family:var(--fm);font-size:8px;padding:2px 6px;border-radius:8px;font-weight:700}
+
+/* MOBILE NAV */
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(7,7,10,.97);border-top:1px solid var(--border);backdrop-filter:blur(16px)}
+.mob-nav-inner{display:flex;align-items:stretch;height:60px}
+.mob-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--muted);transition:color .15s;padding:6px 2px;position:relative}
+.mob-btn:hover{color:var(--dim)}.mob-btn.active{color:var(--acid)}
+.mob-btn.active .mob-icon{transform:translateY(-1px)}
+.mob-icon{font-size:18px;transition:transform .15s;line-height:1}
+.mob-label{font-family:var(--fm);font-size:7px;letter-spacing:.5px;text-transform:uppercase;line-height:1;white-space:nowrap}
+.mob-badge{position:absolute;top:5px;right:calc(50% - 16px);background:var(--acid);color:var(--bg);font-family:var(--fm);font-size:7px;padding:1px 4px;border-radius:8px;font-weight:700;min-width:13px;text-align:center;line-height:13px}
+
+/* NOTIF */
+.notif{position:fixed;bottom:24px;right:24px;background:var(--panel);border:1px solid var(--acid);color:var(--acid);font-family:var(--fm);font-size:11px;letter-spacing:1px;padding:11px 18px;z-index:10000;border-radius:var(--r);transform:translateY(80px);opacity:0;transition:all .28s;max-width:300px}
+.notif.show{transform:translateY(0);opacity:1}
+
+/* RACE LOG */
+.race-card{background:var(--panel);border:1px solid var(--border);padding:18px;border-radius:var(--r);cursor:pointer;transition:border-color .2s}
+.race-card:hover{border-color:rgba(200,240,58,.3)}
+.rc-city{font-family:var(--fd);font-size:22px;letter-spacing:2px}
+.rc-time{font-family:var(--fd);font-size:40px;color:var(--acid);letter-spacing:2px;line-height:1.1}
+.rc-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.rc-badge{font-family:var(--fm);font-size:8px;letter-spacing:1px;color:var(--muted);background:var(--void);border:1px solid var(--border);padding:3px 8px;text-transform:uppercase;border-radius:2px}
+.rc-badge.pr{color:var(--acid);border-color:rgba(200,240,58,.25)}
+
+/* DEVICES */
+.dev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.dev-card{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);padding:18px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.dev-card:hover{border-color:var(--mid);transform:translateY(-2px)}
+.dev-card.connected{border-color:rgba(47,237,160,.3);background:rgba(47,237,160,.04)}
+.dev-icon{font-size:32px;margin-bottom:8px}
+.dev-name{font-size:13px;font-weight:600;margin-bottom:3px}
+.dev-type{font-family:var(--fm);font-size:8px;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
+.dev-status{position:absolute;top:8px;right:8px;font-size:14px}
+.dev-sync{font-family:var(--fm);font-size:8px;color:var(--green);margin-top:6px;display:none}
+.dev-card.connected .dev-sync{display:block}
+
+/* EVENTS */
+.events-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.search-wrap{display:flex;align-items:center;background:var(--void);border:1px solid var(--border);border-radius:var(--r);padding:0 10px;gap:7px;flex:1;min-width:180px;max-width:280px}
+.search-wrap:focus-within{border-color:var(--acid)}
+.search-wrap input{background:none;border:none;padding:8px 0;flex:1;font-size:13px;color:var(--text);outline:none;font-family:var(--fb)}
+.filter-sel{background:var(--void);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:9px;letter-spacing:1px;padding:8px 24px 8px 10px;border-radius:var(--r);cursor:pointer;outline:none;text-transform:uppercase;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M5 7L0 0h10z' fill='%234a4a58'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;-webkit-appearance:none}
+.evt-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:18px;display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center;transition:border-color .2s,transform .15s;cursor:pointer;margin-bottom:8px}
+.evt-card:hover{border-color:rgba(200,240,58,.3);transform:translateX(2px)}
+.evt-date{background:var(--void);border:1px solid var(--border);border-radius:var(--r);padding:8px;text-align:center}
+.evt-day{font-family:var(--fd);font-size:26px;color:var(--acid);line-height:1}
+.evt-month{font-family:var(--fm);font-size:8px;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
+.evt-title{font-size:14px;font-weight:600;margin-bottom:3px}
+.evt-loc{font-family:var(--fm);font-size:10px;color:var(--dim);margin-bottom:6px}
+.evt-tags{display:flex;gap:5px;flex-wrap:wrap}
+.etag{font-family:var(--fm);font-size:8px;letter-spacing:1px;padding:2px 7px;border-radius:2px;text-transform:uppercase}
+.etag-open{background:rgba(200,240,58,.1);color:var(--acid);border:1px solid rgba(200,240,58,.2)}
+.etag-pro{background:rgba(255,107,53,.1);color:var(--orange);border:1px solid rgba(255,107,53,.2)}
+.etag-doubles{background:rgba(155,109,255,.1);color:var(--purple);border:1px solid rgba(155,109,255,.2)}
+.etag-sold{background:rgba(255,61,61,.1);color:var(--red);border:1px solid rgba(255,61,61,.2)}
+
+/* COMMUNITY */
+.community-layout{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
+.composer{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px}
+.composer-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--mid);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;border:2px solid var(--border)}
+.composer-ta{flex:1;background:var(--void);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;color:var(--text);font-family:var(--fb);font-size:13px;resize:none;outline:none;min-height:64px;line-height:1.6;transition:border-color .2s}
+.composer-ta:focus{border-color:var(--acid)}
+.type-btn{background:none;border:1px solid var(--border);color:var(--dim);font-size:12px;padding:6px 10px;cursor:pointer;border-radius:var(--r);transition:all .2s}
+.type-btn:hover{color:var(--text);border-color:var(--mid)}
+.feed{display:flex;flex-direction:column;gap:12px}
+.post{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .2s}
+.post:hover{border-color:var(--mid)}
+.post-top{display:flex;align-items:center;gap:10px;padding:14px 16px 0}
+.post-meta{flex:1}
+.post-author{font-size:13px;font-weight:600}
+.post-time{font-family:var(--fm);font-size:9px;color:var(--muted)}
+.post-type{font-family:var(--fm);font-size:8px;letter-spacing:1px;padding:3px 8px;border-radius:2px;text-transform:uppercase;margin-left:auto}
+.post-body{padding:10px 16px 14px;font-size:13px;color:var(--text);line-height:1.7}
+.post-ach{background:var(--void);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-top:10px;display:flex;align-items:center;gap:12px}
+.ach-time{font-family:var(--fd);font-size:30px;color:var(--acid);letter-spacing:2px;line-height:1}
+.ach-evt{font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.post-footer{padding:8px 16px;border-top:1px solid var(--border);display:flex;gap:14px}
+.react{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 7px;border-radius:var(--r);transition:all .2s;font-family:var(--fb)}
+.react:hover{background:var(--panel2);color:var(--text)}
+.react.liked{color:var(--acid)}
+.sb-widget{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.w-title{font-family:var(--fm);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:12px}
+.trend-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.trend-item:last-child{border-bottom:none}
+.trend-rank{font-family:var(--fd);font-size:20px;color:var(--border);width:24px}
+.trend-tag{font-size:12px;font-weight:600}
+.trend-count{font-family:var(--fm);font-size:9px;color:var(--muted);margin-left:auto}
+.active-ath{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.active-ath:last-child{border-bottom:none}
+.aa-info{flex:1}
+.aa-name{font-size:12px;font-weight:500}
+.aa-stat{font-family:var(--fm);font-size:9px;color:var(--muted)}
+.follow-btn{font-family:var(--fm);font-size:8px;letter-spacing:1px;background:none;border:1px solid var(--border);color:var(--dim);padding:3px 9px;cursor:pointer;border-radius:var(--r);text-transform:uppercase;transition:all .2s}
+.follow-btn:hover{border-color:var(--acid);color:var(--acid)}
+.follow-btn.following{background:rgba(200,240,58,.1);border-color:rgba(200,240,58,.2);color:var(--acid)}
+
+/* LEADERBOARD */
+.lb-row{display:grid;grid-template-columns:40px 1fr 64px 100px 88px;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);transition:background .15s}
+.lb-row:hover{background:var(--panel2)}
+.lb-rank{font-family:var(--fd);font-size:22px;color:var(--muted)}
+.lb-rank.gold{color:#ffd700}.lb-rank.silver{color:#c0c0c0}.lb-rank.bronze{color:#cd7f32}
+.lb-name{font-size:13px;font-weight:500}
+.lb-cat-text{font-family:var(--fm);font-size:9px;color:var(--muted)}
+.lb-time{font-family:var(--fd);font-size:24px;color:var(--acid);letter-spacing:1px}
+.lb-bar-wrap{background:var(--mid);height:4px;border-radius:2px;overflow:hidden}
+.lb-bar-fill{height:100%;background:var(--acid)}
+.lb-hdr{display:grid;grid-template-columns:40px 1fr 64px 100px 88px;gap:12px;padding:7px 16px;font-family:var(--fm);font-size:8px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)}
+
+/* PROFILE */
+.profile-hero{background:linear-gradient(135deg,rgba(200,240,58,.07) 0%,transparent 60%);border:1px solid var(--border);border-radius:var(--r);padding:28px;margin-bottom:18px;display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center}
+.prof-av{width:76px;height:76px;border-radius:50%;background:var(--mid);border:3px solid var(--acid);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;position:relative}
+.prof-level{position:absolute;bottom:-4px;right:-4px;background:var(--acid);color:var(--bg);font-family:var(--fm);font-size:8px;letter-spacing:1px;padding:2px 6px;border-radius:8px;font-weight:700}
+.prof-name{font-family:var(--fd);font-size:36px;letter-spacing:2px;line-height:1}
+.prof-handle{font-family:var(--fm);font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:3px}
+.prof-bio{font-size:12px;color:var(--dim);margin-top:6px;line-height:1.5}
+.prof-stats{display:flex;gap:20px;margin-top:10px;flex-wrap:wrap}
+.ps-item{text-align:center}
+.ps-num{font-family:var(--fd);font-size:26px;color:var(--acid);letter-spacing:1px}
+.ps-lbl{font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.goal-card{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.goal-target{font-family:var(--fd);font-size:28px;color:var(--acid);letter-spacing:1px}
+.goal-bar-wrap{background:var(--mid);height:4px;border-radius:2px;overflow:hidden;margin:8px 0 4px}
+.goal-bar-fill{height:100%;background:var(--acid);transition:width .5s ease}
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.ach-card{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center;transition:all .2s}
+.ach-card:hover{border-color:var(--mid);transform:translateY(-2px)}
+.ach-card.locked{opacity:.3;filter:grayscale(1)}
+.ach-emoji{font-size:24px;margin-bottom:6px}
+.ach-name{font-family:var(--fm);font-size:8px;letter-spacing:1px;color:var(--dim);text-transform:uppercase;line-height:1.3}
+
+/* PLANNER */
+.planner-layout{display:grid;grid-template-columns:288px 1fr;gap:18px}
+.range-val{font-family:var(--fd);font-size:24px;color:var(--acid);letter-spacing:1px;text-align:center}
+.stn-row{display:grid;grid-template-columns:24px 1fr 68px 86px;align-items:center;gap:9px;background:var(--void);border:1px solid var(--border);padding:10px 14px;transition:border-color .2s;border-radius:var(--r);margin-bottom:5px}
+.stn-row:hover{border-color:rgba(200,240,58,.2)}
+.stn-n{font-family:var(--fd);font-size:18px;color:var(--muted)}
+.stn-name{font-size:12px;font-weight:500}
+.stn-type{font-family:var(--fm);font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.stn-time{font-family:var(--fd);font-size:20px;letter-spacing:1px;text-align:right}
+.stn-time.run{color:var(--blue)}.stn-time.work{color:var(--acid)}
+.stn-eff{text-align:right;font-family:var(--fm);font-size:9px}
+.eff-bar-wrap{height:3px;background:var(--mid);border-radius:2px;overflow:hidden;margin-top:2px}
+.eff-bar-fill{height:100%;transition:width .4s ease}
+.totals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);margin-top:14px;border-radius:var(--r);overflow:hidden}
+.total-cell{background:var(--panel);padding:14px;text-align:center}
+.total-n{font-family:var(--fd);font-size:30px;letter-spacing:2px}
+.total-l{font-family:var(--fm);font-size:8px;color:var(--muted);text-transform:uppercase;margin-top:2px;letter-spacing:2px}
+.ai-box{background:rgba(200,240,58,.03);border:1px solid rgba(200,240,58,.15);border-radius:var(--r);padding:18px;margin-top:14px;position:relative}
+.ai-box::before{content:'⚡ AI COACH';position:absolute;top:-9px;left:14px;font-family:var(--fm);font-size:8px;letter-spacing:3px;background:var(--panel);color:var(--acid);padding:2px 8px}
+.ai-tip{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.ai-tip:last-child{border-bottom:none}
+.ai-tip-icon{font-size:16px;width:20px;flex-shrink:0}
+.ai-tip-text{font-size:12px;color:var(--dim);line-height:1.5}
+.ai-tip-text strong{color:var(--text);font-weight:500}
+.ai-dots span{display:inline-block;width:4px;height:4px;background:var(--acid);border-radius:50%;margin:0 2px;animation:blink 1.2s infinite}
+.ai-dots span:nth-child(2){animation-delay:.2s}.ai-dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+/* PRICING PAGE STYLES */
+.pricing-hero{text-align:center;padding:20px 0 36px}
+.pricing-hero-tag{display:inline-flex;align-items:center;gap:8px;font-family:var(--fm);font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--acid);border:1px solid rgba(200,240,58,.2);padding:4px 14px;border-radius:2px;margin-bottom:16px}
+.pricing-title{font-family:var(--fd);font-size:clamp(42px,7vw,72px);letter-spacing:2px;line-height:.95;margin-bottom:12px}
+.pricing-sub{font-size:14px;color:var(--dim);max-width:480px;margin:0 auto;line-height:1.7}
+.billing-row{display:flex;align-items:center;justify-content:center;gap:14px;margin:28px 0 36px}
+.bill-lbl{font-family:var(--fm);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);transition:color .2s}
+.bill-lbl.on{color:var(--text)}
+.toggle{width:48px;height:26px;background:var(--mid);border:1px solid var(--border);border-radius:13px;cursor:pointer;position:relative;transition:all .2s}
+.toggle.on{background:rgba(200,240,58,.15);border-color:rgba(200,240,58,.3)}
+.toggle-knob{width:18px;height:18px;background:var(--muted);border-radius:50%;position:absolute;top:3px;left:3px;transition:all .24s}
+.toggle.on .toggle-knob{left:25px;background:var(--acid)}
+.save-pill{background:rgba(200,240,58,.1);border:1px solid rgba(200,240,58,.2);color:var(--acid);font-family:var(--fm);font-size:8px;letter-spacing:2px;padding:3px 9px;border-radius:10px;text-transform:uppercase;opacity:.4;transition:opacity .2s}
+.save-pill.on{opacity:1}
+.plans-grid{display:grid;grid-template-columns:1fr 1.06fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:48px}
+.plan{background:var(--panel);padding:28px 24px;position:relative;transition:background .2s}
+.plan.featured{background:var(--panel2)}
+.plan.featured::before{content:'MOST POPULAR';position:absolute;top:0;left:50%;transform:translateX(-50%);font-family:var(--fm);font-size:7px;letter-spacing:3px;background:var(--acid);color:var(--bg);padding:3px 14px;border-radius:0 0 4px 4px;font-weight:700}
+.plan-icon{font-size:28px;margin-bottom:12px}
+.plan-name{font-family:var(--fd);font-size:32px;letter-spacing:3px;margin-bottom:5px}
+.plan-tag{font-size:12px;color:var(--dim);font-style:italic;margin-bottom:20px}
+.plan-price{font-family:var(--fd);font-size:56px;letter-spacing:1px;line-height:1}
+.plan-price sup{font-size:24px;vertical-align:top;margin-top:8px;display:inline-block}
+.plan-price sub{font-family:var(--fm);font-size:10px;color:var(--dim);letter-spacing:1px}
+.plan-note{font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:1px;margin:6px 0 20px;min-height:14px}
+.plan-btn{width:100%;padding:11px;font-family:var(--fd);font-size:18px;letter-spacing:2px;border:none;cursor:pointer;border-radius:var(--r);transition:all .2s;margin-bottom:20px}
+.pb-free{background:var(--mid);color:var(--text);border:1px solid var(--border)}
+.pb-free:hover{background:#333}
+.pb-pro{background:var(--acid);color:var(--bg)}
+.pb-pro:hover{background:var(--acid2);transform:translateY(-1px)}
+.pb-gym{background:var(--orange);color:#fff}
+.pb-gym:hover{background:#e85a25;transform:translateY(-1px)}
+.plan-divider{height:1px;background:var(--border);margin-bottom:18px}
+.plan-feats{display:flex;flex-direction:column;gap:8px}
+.pf{display:flex;align-items:flex-start;gap:8px;font-size:12px}
+.pf.yes{color:var(--text)}.pf.lim{color:var(--muted)}.pf.no{color:var(--muted)}
+.pf-check{font-size:12px;width:16px;flex-shrink:0;margin-top:1px}
+.pf-text strong{color:var(--text);font-weight:500}
+.compare-wrap{margin-bottom:40px;overflow-x:auto}
+.compare-title{font-family:var(--fd);font-size:36px;letter-spacing:2px;margin-bottom:6px}
+.compare-sub{font-size:13px;color:var(--dim);margin-bottom:20px}
+.ctable{width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;min-width:500px}
+.ctable th{background:var(--panel2);padding:13px 16px;font-family:var(--fm);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:1px solid var(--border)}
+.ctable th:not(:first-child){text-align:center;width:110px}
+.ctable .th-pro{color:var(--acid)}.ctable .th-gym{color:var(--orange)}
+.ctable td{padding:10px 16px;border-bottom:1px solid rgba(28,28,36,.6);font-size:12px;color:var(--dim)}
+.ctable td:not(:first-child){text-align:center}
+.ctable tr:last-child td{border-bottom:none}
+.ctable tr:hover td{background:rgba(255,255,255,.012)}
+.ctable .cat-row td{background:var(--void);color:var(--muted);font-family:var(--fm);font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:7px 16px}
+.cy{color:var(--green);font-size:14px}.cn{color:var(--muted);font-size:14px}
+.cl{color:var(--acid);font-size:10px;font-family:var(--fm)}.cp{color:var(--orange);font-size:10px;font-family:var(--fm)}
+.faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.faq-item{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.faq-q{padding:14px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;user-select:none}
+.faq-q:hover{background:var(--panel2)}
+.faq-icon{color:var(--acid);font-size:16px;flex-shrink:0;transition:transform .2s}
+.faq-item.open .faq-icon{transform:rotate(45deg)}
+.faq-a{display:none;padding:0 16px 14px;font-size:12px;color:var(--dim);line-height:1.7}
+.faq-item.open .faq-a{display:block}
+.faq-a strong{color:var(--text)}
+
+/* AUTH */
+.auth-wrap{display:flex;align-items:center;justify-content:center;min-height:60vh}
+.auth-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:36px;width:100%;max-width:400px;text-align:center}
+.auth-logo{font-family:var(--fd);font-size:38px;letter-spacing:3px;color:var(--acid);margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--dim);margin-bottom:24px}
+
+/* EMPTY / UTILS */
+.empty{text-align:center;padding:40px 20px;color:var(--muted);font-family:var(--fm);font-size:10px;letter-spacing:2px;border:1px dashed var(--border);border-radius:var(--r)}
+.divider{border:none;border-top:1px solid var(--border);margin:18px 0}
+.flex{display:flex}.flex-c{display:flex;align-items:center}.flex-b{display:flex;align-items:center;justify-content:space-between}.flex-wrap{flex-wrap:wrap}
+.gap-8{gap:8px}.gap-10{gap:10px}.gap-12{gap:12px}
+.color-acid{color:var(--acid)}.color-blue{color:var(--blue)}.color-green{color:var(--green)}.color-orange{color:var(--orange)}.color-red{color:var(--red)}.color-muted{color:var(--muted)}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .app-shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .mob-nav{display:block}
+  .hamburger{display:flex;align-items:center;justify-content:center}
+  .page{padding:16px 14px 72px}
+  .topbar{padding:12px 16px}
+  .planner-layout{grid-template-columns:1fr}
+  .community-layout{grid-template-columns:1fr}
+  .profile-hero{grid-template-columns:1fr;gap:14px}
+  .g4{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr}
+  .g2{grid-template-columns:1fr}
+  .plans-grid{grid-template-columns:1fr}
+  .lb-row,.lb-hdr{grid-template-columns:36px 1fr 90px}
+  .lb-row>*:nth-child(3),.lb-row>*:nth-child(5),.lb-hdr>*:nth-child(3),.lb-hdr>*:nth-child(5){display:none}
+  .fr3,.fr2{grid-template-columns:1fr}
+  .evt-card{grid-template-columns:56px 1fr;gap:10px}
+  .evt-card>*:last-child{display:none}
+  .faq-grid{grid-template-columns:1fr}
+  .events-bar{flex-direction:column;align-items:stretch}
+  .search-wrap{max-width:100%}
+  .modal{width:96%;padding:20px}
+}
+</style>
+</head>
+<body>
+<div class="notif" id="notif"></div>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="dOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-hdr">
+    <div class="drawer-logo">RACEIQ</div>
+    <button class="drawer-x" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-nav">
+    <div class="drawer-section">Main</div>
+    <button class="di active" id="di-home" onclick="nav('home');closeDrawer()"><span class="di-icon">⚡</span><span class="di-label">Dashboard</span></button>
+    <button class="di" id="di-planner" onclick="nav('planner');closeDrawer()"><span class="di-icon">🎯</span><span class="di-label">Race Planner</span></button>
+    <button class="di" id="di-log" onclick="nav('log');closeDrawer()"><span class="di-icon">📋</span><span class="di-label">Race Log</span></button>
+    <button class="di" id="di-events" onclick="nav('events');closeDrawer()"><span class="di-icon">📍</span><span class="di-label">Find Events</span></button>
+    <div class="drawer-section">Social</div>
+    <button class="di" id="di-community" onclick="nav('community');closeDrawer()"><span class="di-icon">🏆</span><span class="di-label">Community</span><span class="di-badge" id="di-comm-badge">3</span></button>
+    <button class="di" id="di-leaderboard" onclick="nav('leaderboard');closeDrawer()"><span class="di-icon">📊</span><span class="di-label">Leaderboard</span></button>
+    <div class="drawer-section">Account</div>
+    <button class="di" id="di-devices" onclick="nav('devices');closeDrawer()"><span class="di-icon">⌚</span><span class="di-label">Devices & Apps</span><span class="di-badge" id="di-dev-badge">0</span></button>
+    <button class="di" id="di-social" onclick="nav('social');closeDrawer()"><span class="di-icon">📲</span><span class="di-label">Social Connect</span></button>
+    <button class="di" id="di-pricing" onclick="nav('pricing');closeDrawer()"><span class="di-icon">💳</span><span class="di-label">Plans & Pricing</span></button>
+    <button class="di" id="di-account" onclick="nav('account');closeDrawer()"><span class="di-icon">👤</span><span class="di-label">My Profile</span></button>
+  </div>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mob-nav">
+  <div class="mob-nav-inner">
+    <button class="mob-btn active" id="mn-home" onclick="nav('home')"><span class="mob-icon">⚡</span><span class="mob-label">Home</span></button>
+    <button class="mob-btn" id="mn-planner" onclick="nav('planner')"><span class="mob-icon">🎯</span><span class="mob-label">Planner</span></button>
+    <button class="mob-btn" id="mn-events" onclick="nav('events')"><span class="mob-icon">📍</span><span class="mob-label">Events</span></button>
+    <button class="mob-btn" id="mn-community" onclick="nav('community')"><span class="mob-badge" id="mn-comm-badge">3</span><span class="mob-icon">🏆</span><span class="mob-label">Community</span></button>
+    <button class="mob-btn" id="mn-account" onclick="nav('account')"><span class="mob-icon">👤</span><span class="mob-label">Profile</span></button>
+    <button class="mob-btn" onclick="openDrawer()"><span class="mob-icon">☰</span><span class="mob-label">More</span></button>
+  </div>
+</nav>
+
+<!-- DEVICE MODAL -->
+<div class="modal-overlay" id="devModal">
+  <div class="modal"><div class="modal-hdr"><div class="modal-title" id="devModalTitle">CONNECT</div><button class="modal-x" onclick="closeModal('devModal')">✕</button></div><div id="devModalBody"></div></div>
+</div>
+<!-- EVENT MODAL -->
+<div class="modal-overlay" id="evtModal">
+  <div class="modal"><div class="modal-hdr"><div class="modal-title" id="evtModalTitle">EVENT</div><button class="modal-x" onclick="closeModal('evtModal')">✕</button></div><div id="evtModalBody"></div></div>
+</div>
+<!-- UPGRADE MODAL -->
+<div class="modal-overlay" id="upgradeModal">
+  <div class="modal" style="max-width:420px;text-align:center">
+    <div class="modal-hdr"><div class="modal-title" style="color:var(--acid)">UPGRADE TO PRO</div><button class="modal-x" onclick="closeModal('upgradeModal')">✕</button></div>
+    <div style="font-size:36px;margin-bottom:12px">⚡</div>
+    <p style="font-size:14px;color:var(--dim);line-height:1.7;margin-bottom:20px" id="upgrade-reason">Unlock this feature with RaceIQ Pro</p>
+    <div style="background:var(--void);border:1px solid var(--border);padding:16px;border-radius:var(--r);margin-bottom:20px">
+      <div style="font-family:var(--fd);font-size:48px;color:var(--acid);letter-spacing:1px">£4.99<sub style="font-family:var(--fm);font-size:12px;color:var(--dim)">/mo</sub></div>
+      <div style="font-family:var(--fm);font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:1px">OR £39.99/YEAR (SAVE 33%)</div>
+    </div>
+    <button class="btn btn-pro" style="width:100%;padding:13px;font-family:var(--fd);font-size:18px;letter-spacing:2px" onclick="activatePro()">START PRO — 7 DAYS FREE</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="nav('pricing');closeModal('upgradeModal')">SEE ALL PLANS</button>
+    <div style="font-family:var(--fm);font-size:9px;color:var(--muted);margin-top:10px;letter-spacing:.5px">Cancel anytime. No commitment.</div>
+  </div>
+</div>
+<!-- SHARE MODAL -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal"><div class="modal-hdr"><div class="modal-title">SHARE</div><button class="modal-x" onclick="closeModal('shareModal')">✕</button></div><div id="shareModalBody"></div></div>
+</div>
+
+<!-- APP SHELL -->
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sb-logo"><div class="sb-logo-text">RACEIQ</div><div class="sb-logo-sub">/ Hyrox Intelligence</div></div>
+    <nav class="sb-nav">
+      <div class="sb-section">Main</div>
+      <button class="ni active" id="ni-home" onclick="nav('home',this)"><span class="ni-icon">⚡</span><span class="ni-label">Dashboard</span></button>
+      <button class="ni" id="ni-planner" onclick="nav('planner',this)"><span class="ni-icon">🎯</span><span class="ni-label">Race Planner</span></button>
+      <button class="ni" id="ni-log" onclick="nav('log',this)"><span class="ni-icon">📋</span><span class="ni-label">Race Log</span></button>
+      <button class="ni" id="ni-events" onclick="nav('events',this)"><span class="ni-icon">📍</span><span class="ni-label">Find Events</span><span class="ni-badge blue">NEW</span></button>
+      <div class="sb-section">Social</div>
+      <button class="ni" id="ni-community" onclick="nav('community',this)"><span class="ni-icon">🏆</span><span class="ni-label">Community</span><span class="ni-badge" id="sb-comm-badge">3</span></button>
+      <button class="ni" id="ni-leaderboard" onclick="nav('leaderboard',this)"><span class="ni-icon">📊</span><span class="ni-label">Leaderboard</span></button>
+      <div class="sb-section">Account</div>
+      <button class="ni" id="ni-devices" onclick="nav('devices',this)"><span class="ni-icon">⌚</span><span class="ni-label">Devices & Apps</span><span class="ni-badge" id="sb-dev-badge">0</span></button>
+      <button class="ni" id="ni-social" onclick="nav('social',this)"><span class="ni-icon">📲</span><span class="ni-label">Social Connect</span></button>
+      <button class="ni" id="ni-pricing" onclick="nav('pricing',this)"><span class="ni-icon">💳</span><span class="ni-label">Plans & Pricing</span></button>
+      <button class="ni" id="ni-account" onclick="nav('account',this)"><span class="ni-icon">👤</span><span class="ni-label">My Profile</span></button>
+    </nav>
+    <div class="sb-footer">
+      <div class="tier-badge" id="tier-badge-btn" onclick="nav('pricing')">
+        <div class="tier-name" id="tier-name-sb">FREE</div>
+        <div class="tier-action" id="tier-action-sb">Upgrade to Pro →</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" onclick="openDrawer()">☰</button>
+        <div class="topbar-title" id="topbar-title">DASHBOARD</div>
+      </div>
+      <div class="topbar-right">
+        <div class="live-pill"><div class="dot" style="background:var(--red)"></div>DEMO MODE</div>
+        <button class="topbar-user-btn" id="topbar-user-btn" onclick="nav('account')">Sign In</button>
+      </div>
+    </div>
+
+    <!-- ====== DASHBOARD ====== -->
+    <div class="page active" id="page-home">
+      <div class="sec-hdr"><div class="sec-title">DASHBOARD</div><div class="sec-tag">Overview</div></div>
+      <div class="g4 mb20" id="dash-stats">
+        <div class="stat c-acid"><div class="stat-n color-acid" id="d-races">0</div><div class="stat-l">Races Logged</div></div>
+        <div class="stat c-blue"><div class="stat-n color-blue" id="d-pr">—</div><div class="stat-l">Personal Best</div></div>
+        <div class="stat c-green"><div class="stat-n color-green" id="d-devs">0</div><div class="stat-l">Devices Linked</div></div>
+        <div class="stat c-orange"><div class="stat-n color-orange" id="d-next">—</div><div class="stat-l">Next Event</div></div>
+      </div>
+      <div class="g2">
+        <div class="panel"><div class="p-title">Recent Races</div><div id="dash-recent"><div class="empty">No races yet — log your first!</div></div></div>
+        <div class="panel"><div class="p-title">Community Highlights</div><div id="dash-comm"></div></div>
+      </div>
+      <!-- Quick actions -->
+      <div class="panel mt20">
+        <div class="p-title">Quick Actions</div>
+        <div class="flex flex-wrap gap-10">
+          <button class="btn btn-acid" onclick="nav('planner')">🎯 Build Race Plan</button>
+          <button class="btn btn-outline" onclick="nav('log');toggleAddRace()">+ Log Race</button>
+          <button class="btn btn-outline" onclick="nav('events')">📍 Find Events</button>
+          <button class="btn btn-outline" onclick="nav('community')">🏆 Community</button>
+          <button class="btn btn-ghost" onclick="nav('pricing')" id="dash-upgrade-btn">⚡ Upgrade to Pro</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== PLANNER ====== -->
+    <div class="page" id="page-planner">
+      <div class="sec-hdr"><div class="sec-title">RACE PLANNER</div><div class="sec-tag">AI Strategy</div></div>
+      <div class="planner-layout">
+        <div>
+          <div class="panel">
+            <div class="p-title">Setup</div>
+            <div class="fg mb16"><label>Category</label><select id="p-cat" onchange="calcPlan()"><option value="open">Open</option><option value="pro">Pro</option><option value="doubles">Doubles</option></select></div>
+            <div class="fg mb16"><label>Fitness Level</label><select id="p-lvl" onchange="calcPlan()"><option value="beginner">Beginner (1st race)</option><option value="intermediate" selected>Intermediate (1–3 races)</option><option value="advanced">Advanced (4+ races)</option><option value="elite">Elite (&lt;55min)</option></select></div>
+            <div class="fg mb16">
+              <label>Target Time</label>
+              <div class="range-val" id="p-target-v">75 MIN</div>
+              <input type="range" id="p-target" min="52" max="130" value="75" step="1" oninput="calcPlan()">
+              <div class="flex-b mt16" style="font-family:var(--fm);font-size:9px;color:var(--muted)"><span>52 min</span><span>130 min</span></div>
+            </div>
+            <div class="fg mb16">
+              <label>Run vs Gym Strength</label>
+              <div class="flex-b" style="font-family:var(--fm);font-size:10px;margin-bottom:5px"><span class="color-blue" id="p-run-v">RUN 50%</span><span class="color-acid" id="p-gym-v">GYM 50%</span></div>
+              <input type="range" id="p-run" min="20" max="80" value="50" step="5" oninput="calcPlan()">
+            </div>
+            <div class="fg mb16">
+              <label>Sled Confidence</label>
+              <div class="range-val" id="p-sled-v" style="font-size:18px">Medium</div>
+              <input type="range" id="p-sled" min="1" max="3" value="2" step="1" oninput="calcPlan()">
+              <div class="flex-b mt16" style="font-family:var(--fm);font-size:9px;color:var(--muted)"><span>Weak</span><span>Strong</span></div>
+            </div>
+            <div class="flex gap-8">
+              <button class="btn btn-acid" style="flex:1" onclick="getAICoach()">⚡ AI PLAN</button>
+              <button class="btn btn-outline" onclick="savePlanToLog()">💾 SAVE</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="p-title">Station Splits</div>
+            <div style="display:grid;grid-template-columns:24px 1fr 68px 86px;gap:9px;padding:5px 14px;font-family:var(--fm);font-size:8px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);margin-bottom:6px"><span>#</span><span>Station</span><span style="text-align:right">Split</span><span style="text-align:right">Effort</span></div>
+            <div id="plan-stations"></div>
+            <div class="totals" id="plan-totals"></div>
+          </div>
+          <div class="ai-box" id="ai-box">
+            <div id="ai-placeholder" style="font-family:var(--fm);font-size:10px;color:var(--muted);letter-spacing:1px">Click "AI PLAN" for personalised coaching</div>
+            <div id="ai-loading" style="display:none;align-items:center;gap:8px;font-family:var(--fm);font-size:11px;color:var(--dim)">Analysing… <div class="ai-dots"><span></span><span></span><span></span></div></div>
+            <div id="ai-tips" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== RACE LOG ====== -->
+    <div class="page" id="page-log">
+      <div class="sec-hdr"><div class="sec-title">RACE LOG</div><div class="sec-tag">History</div></div>
+      <div class="flex gap-10 mb16">
+        <button class="btn btn-acid" onclick="toggleAddRace()">+ LOG RACE</button>
+        <button class="btn btn-outline" onclick="clearLog()">CLEAR ALL</button>
+      </div>
+      <div id="add-race-form" style="display:none" class="panel mb16">
+        <div class="p-title">New Race</div>
+        <div class="form-row fr3">
+          <div class="fg"><label>City / Event</label><input type="text" id="lr-city" placeholder="e.g. London 2026"></div>
+          <div class="fg"><label>Finish Time (MM:SS)</label><input type="text" id="lr-time" placeholder="72:30"></div>
+          <div class="fg"><label>Category</label><select id="lr-cat"><option>Open</option><option>Pro</option><option>Doubles</option></select></div>
+        </div>
+        <div class="form-row fr3">
+          <div class="fg"><label>Date</label><input type="date" id="lr-date"></div>
+          <div class="fg"><label>Overall Place</label><input type="number" id="lr-place" placeholder="e.g. 42"></div>
+          <div class="fg"><label>Notes</label><input type="text" id="lr-notes" placeholder="How did it feel?"></div>
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-acid" onclick="addRace()">SAVE</button>
+          <button class="btn btn-outline" onclick="toggleAddRace()">CANCEL</button>
+        </div>
+      </div>
+      <div class="g2" id="log-grid"><div class="empty" style="grid-column:1/-1">No races yet — log your first!</div></div>
+    </div>
+
+    <!-- ====== DEVICES ====== -->
+    <div class="page" id="page-devices">
+      <div class="sec-hdr"><div class="sec-title">DEVICES & APPS</div><div class="sec-tag">Sync</div></div>
+      <div class="info-banner"><div style="font-size:16px;flex-shrink:0">⚠️</div><p><strong>Integration note:</strong> Real device sync requires OAuth. Garmin & Strava have instant API access. Apple Watch requires a native iOS app. Below simulates the connection flow — real integration needs a backend server.</p></div>
+      <div class="tabs">
+        <button class="tab active" onclick="swTab(this,'dev-watches')">Smartwatches</button>
+        <button class="tab" onclick="swTab(this,'dev-apps')">Fitness Apps</button>
+        <button class="tab" onclick="swTab(this,'dev-history')">Sync History</button>
+      </div>
+      <div class="tab-body active" id="dev-watches"><div class="dev-grid" id="watches-grid"></div></div>
+      <div class="tab-body" id="dev-apps"><div class="dev-grid" id="apps-grid"></div></div>
+      <div class="tab-body" id="dev-history"><div class="panel" id="sync-history-log"></div></div>
+    </div>
+
+    <!-- ====== EVENTS ====== -->
+    <div class="page" id="page-events">
+      <div class="sec-hdr"><div class="sec-title">FIND EVENTS</div><div class="sec-tag">Worldwide</div></div>
+      <div class="info-banner"><div style="font-size:16px;flex-shrink:0">📍</div><p><strong>Demo data</strong> based on the real Hyrox 2025/26 calendar. Production would use official Hyrox API or partner data feed.</p></div>
+      <div class="events-bar">
+        <div class="search-wrap"><span>🔍</span><input type="text" id="evt-q" placeholder="Search city, country..." oninput="filterEvts()"></div>
+        <select class="filter-sel" id="evt-region" onchange="filterEvts()"><option value="">All Regions</option><option value="UK">United Kingdom</option><option value="Europe">Europe</option><option value="North America">North America</option><option value="Asia Pacific">Asia Pacific</option><option value="Middle East">Middle East</option></select>
+        <select class="filter-sel" id="evt-month" onchange="filterEvts()"><option value="">All Months</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select>
+        <select class="filter-sel" id="evt-cat" onchange="filterEvts()"><option value="">All Categories</option><option value="open">Open</option><option value="pro">Pro</option><option value="doubles">Doubles</option></select>
+        <button class="btn btn-ghost btn-sm" onclick="nearMe()">📍 Near Me</button>
+      </div>
+      <div id="evt-count" style="font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:12px"></div>
+      <div id="evt-list"></div>
+    </div>
+
+    <!-- ====== COMMUNITY ====== -->
+    <div class="page" id="page-community">
+      <div class="sec-hdr"><div class="sec-title">COMMUNITY</div><div class="sec-tag">Feed</div></div>
+      <div class="community-layout">
+        <div>
+          <div class="composer" id="composer">
+            <div class="composer-row">
+              <div class="avatar" id="comp-av">?</div>
+              <textarea class="composer-ta" id="comp-text" placeholder="Share your race result, achievement or tip…"></textarea>
+            </div>
+            <div class="flex-b">
+              <div class="flex gap-8">
+                <button class="type-btn" onclick="setPostType('result')">🏁 Result</button>
+                <button class="type-btn" onclick="setPostType('tip')">💡 Tip</button>
+                <button class="type-btn" onclick="setPostType('milestone')">🏆 Milestone</button>
+              </div>
+              <button class="btn btn-acid btn-sm" onclick="submitPost()">POST</button>
+            </div>
+            <div id="comp-type-ind" style="font-family:var(--fm);font-size:9px;color:var(--acid);letter-spacing:1px;margin-top:7px;display:none"></div>
+          </div>
+          <div class="feed" id="feed"></div>
+        </div>
+        <div>
+          <div class="sb-widget"><div class="w-title">Trending</div><div id="trending"></div></div>
+          <div class="sb-widget"><div class="w-title">Active Athletes</div><div id="active-aths"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== LEADERBOARD ====== -->
+    <div class="page" id="page-leaderboard">
+      <div class="sec-hdr"><div class="sec-title">LEADERBOARD</div><div class="sec-tag">Demo Data</div></div>
+      <div class="info-banner"><div style="font-size:16px;flex-shrink:0">ℹ️</div><p>Realistic demo data modelled on Hyrox finish distributions. Full leaderboard requires <strong>Pro</strong> — <a href="#" onclick="nav('pricing')" style="color:var(--acid)">upgrade to see all entries</a>.</p></div>
+      <div class="tabs">
+        <button class="tab active" onclick="swTab(this,'lb-open')">Open</button>
+        <button class="tab" onclick="swTab(this,'lb-pro')">Pro</button>
+        <button class="tab" onclick="swTab(this,'lb-doubles')">Doubles</button>
+        <button class="tab" onclick="swTab(this,'lb-local')">Near Me</button>
+      </div>
+      <div class="tab-body active" id="lb-open"></div>
+      <div class="tab-body" id="lb-pro"></div>
+      <div class="tab-body" id="lb-doubles"></div>
+      <div class="tab-body" id="lb-local"></div>
+    </div>
+
+    <!-- ====== SOCIAL CONNECT ====== -->
+    <div class="page" id="page-social">
+      <div class="sec-hdr"><div class="sec-title">SOCIAL CONNECT</div><div class="sec-tag">Share & Sync</div></div>
+      <div class="info-banner"><div style="font-size:16px;flex-shrink:0">📲</div><p>Facebook & X work instantly. Instagram & TikTok copy your link (their APIs require business accounts). Strava shares once connected in Devices. <strong>Result Cards</strong> generate a branded PNG you can post anywhere.</p></div>
+      <div class="g2">
+        <div class="panel">
+          <div class="p-title">Connected Platforms</div>
+          <div id="social-platforms"></div>
+        </div>
+        <div class="panel">
+          <div class="p-title">Share a Race Result</div>
+          <div class="fg mb16"><label>Choose Race</label><select id="social-race-sel"></select></div>
+          <div id="social-race-preview" style="display:none;background:var(--void);border:1px solid var(--border);padding:12px;border-radius:var(--r);margin-bottom:12px"></div>
+          <div class="flex gap-8 flex-wrap">
+            <button class="btn btn-acid btn-sm" onclick="triggerShare()">📤 SHARE</button>
+            <button class="btn btn-outline btn-sm" onclick="triggerCard()">🖼 DOWNLOAD CARD</button>
+          </div>
+          <div style="margin-top:16px"><canvas id="card-preview" width="300" height="300" style="width:220px;height:220px;border:1px solid var(--border);border-radius:var(--r);display:block"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== PRICING ====== -->
+    <div class="page" id="page-pricing">
+      <div class="pricing-hero">
+        <div class="pricing-hero-tag"><span style="width:5px;height:5px;background:var(--acid);border-radius:50%;animation:blink 2s infinite"></span>Simple, transparent pricing</div>
+        <div class="pricing-title">PLANS &<br><span class="color-acid">PRICING</span></div>
+        <p class="pricing-sub">Start free. Upgrade when it makes your racing better. No hidden fees, no lock-in, cancel anytime.</p>
+      </div>
+      <div class="billing-row">
+        <span class="bill-lbl on" id="bl-monthly">Monthly</span>
+        <div class="toggle" id="bill-toggle" onclick="toggleBilling()"><div class="toggle-knob"></div></div>
+        <span class="bill-lbl" id="bl-annual">Annual</span>
+        <span class="save-pill" id="save-pill">Save 33%</span>
+      </div>
+      <!-- PLAN CARDS -->
+      <div class="plans-grid">
+        <div class="plan">
+          <div class="plan-icon">🆓</div>
+          <div class="plan-name" style="color:var(--dim)">FREE</div>
+          <div class="plan-tag">Get started, no card needed</div>
+          <div class="plan-price" style="color:var(--text)"><sup></sup>£0<sub>/forever</sub></div>
+          <div class="plan-note"></div>
+          <button class="plan-btn pb-free" onclick="handleFreeCta()">GET STARTED FREE</button>
+          <div class="plan-divider"></div>
+          <div class="plan-feats">
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text">Race planner — <strong>unlimited</strong></span></div>
+            <div class="pf lim"><span class="pf-check">◐</span><span class="pf-text">Race log — <strong>3 races max</strong></span></div>
+            <div class="pf lim"><span class="pf-check">◐</span><span class="pf-text">Community — <strong>read only</strong></span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text">Event finder</span></div>
+            <div class="pf lim"><span class="pf-check">◐</span><span class="pf-text">Leaderboard — <strong>top 10 only</strong></span></div>
+            <div class="pf no"><span class="pf-check" style="color:var(--muted)">✗</span><span>AI coaching</span></div>
+            <div class="pf no"><span class="pf-check" style="color:var(--muted)">✗</span><span>Device sync</span></div>
+            <div class="pf no"><span class="pf-check" style="color:var(--muted)">✗</span><span>Result cards</span></div>
+          </div>
+        </div>
+        <div class="plan featured">
+          <div class="plan-icon">⚡</div>
+          <div class="plan-name" style="color:var(--acid)">PRO</div>
+          <div class="plan-tag">For serious Hyrox athletes</div>
+          <div class="plan-price" style="color:var(--acid)"><sup>£</sup><span id="pro-price">4.99</span><sub id="pro-sub">/month</sub></div>
+          <div class="plan-note" id="pro-note"></div>
+          <button class="plan-btn pb-pro" onclick="handleProCta()">START PRO — 7 DAYS FREE</button>
+          <div class="plan-divider"></div>
+          <div class="plan-feats">
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text"><strong>Everything in Free</strong></span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text">Race log — <strong>unlimited</strong></span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text"><strong>AI race coaching</strong></span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text"><strong>Device sync</strong> — Garmin, Strava…</span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text"><strong>Shareable result cards (PNG)</strong></span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text">Full community — post & follow</span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text">Full leaderboard access</span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text">Goals & achievement tracking</span></div>
+          </div>
+        </div>
+        <div class="plan">
+          <div class="plan-icon">🏋️</div>
+          <div class="plan-name" style="color:var(--orange)">GYM</div>
+          <div class="plan-tag">For Hyrox-affiliated gyms</div>
+          <div class="plan-price" style="color:var(--orange)"><sup>£</sup><span id="gym-price">29</span><sub id="gym-sub">/month</sub></div>
+          <div class="plan-note" id="gym-note"></div>
+          <button class="plan-btn pb-gym" onclick="notify('Email hello@raceiq.app to set up your Gym account')">CONTACT US</button>
+          <div class="plan-divider"></div>
+          <div class="plan-feats">
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text"><strong>Pro for all members included</strong></span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text">Gym analytics dashboard</span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text">Member leaderboard (gym-only)</span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text">White-label branding</span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text">Bulk race import</span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text">Monthly performance report</span></div>
+            <div class="pf yes"><span class="pf-check">✓</span><span class="pf-text"><strong>Unlimited members — flat fee</strong></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPARE TABLE -->
+      <div class="compare-wrap">
+        <div class="compare-title">FULL COMPARISON</div>
+        <div class="compare-sub">Every feature, side by side</div>
+        <div style="overflow-x:auto">
+        <table class="ctable">
+          <thead><tr><th>Feature</th><th>Free</th><th class="th-pro">Pro</th><th class="th-gym">Gym</th></tr></thead>
+          <tbody>
+            <tr class="cat-row"><td colspan="4">Race Planning</td></tr>
+            <tr><td>Race planner (unlimited)</td><td><span class="cy">✓</span></td><td><span class="cy">✓</span></td><td><span class="cy">✓</span></td></tr>
+            <tr><td>AI race coaching</td><td><span class="cn">—</span></td><td><span class="cy">✓</span></td><td><span class="cy">✓</span></td></tr>
+            <tr><td>Weakness identifier</td><td><span class="cn">—</span></td><td><span class="cy">✓</span></td><td><span class="cy">✓</span></td></tr>
+            <tr class="cat-row"><td colspan="4">Race Log</td></tr>
+            <tr><td>Saved races</td><td><span class="cl">3 max</span></td><td><span class="cy">Unlimited</span></td><td><span class="cy">Unlimited</span></td></tr>
+            <tr><td>PR detection</td><td><span class="cn">—</span></td><td><span class="cy">✓</span></td><td><span class="cy">✓</span></td></tr>
+            <tr><td>Split breakdown per race</td><td><span class="cn">—</span></td><td><span class="cy">✓</span></td><td><span class="cy">✓</span></td></tr>
+            <tr class="cat-row"><td colspan="4">Devices</td></tr>
+            <tr><td>Strava, Garmin, Whoop</td><td><span class="cn">—</span></td><td><span class="cy">✓</span></td><td><span class="cy">✓</span></td></tr>
+            <tr class="cat-row"><td colspan="4">Community & Social</td></tr>
+            <tr><td>Community feed (read)</td><td><span class="cy">✓</span></td><td><span class="cy">✓</span></td><td><span class="cy">✓</span></td></tr>
+            <tr><td>Post results & tips</td><td><span class="cn">—</span></td><td><span class="cy">✓</span></td><td><span class="cy">✓</span></td></tr>
+            <tr><td>Leaderboard</td><td><span class="cl">Top 10</span></td><td><span class="cy">Full</span></td><td><span class="cy">Full + Gym</span></td></tr>
+            <tr><td>Shareable result cards</td><td><span class="cn">—</span></td><td><span class="cy">✓</span></td><td><span class="cy">✓</span></td></tr>
+            <tr class="cat-row"><td colspan="4">Gym Features</td></tr>
+            <tr><td>Gym analytics dashboard</td><td><span class="cn">—</span></td><td><span class="cn">—</span></td><td><span class="cp">✓</span></td></tr>
+            <tr><td>Member leaderboard</td><td><span class="cn">—</span></td><td><span class="cn">—</span></td><td><span class="cp">✓</span></td></tr>
+            <tr><td>Pro for all members</td><td><span class="cn">—</span></td><td><span class="cn">—</span></td><td><span class="cp">✓</span></td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div style="margin-top:32px">
+        <div class="compare-title" style="font-size:32px">QUESTIONS</div>
+        <div class="faq-grid" id="pricing-faq"></div>
+      </div>
+    </div>
+
+    <!-- ====== ACCOUNT ====== -->
+    <div class="page" id="page-account">
+      <div id="account-content"></div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<script>
+// ================================================================
+//  STATE
+// ================================================================
+let APP = {
+  user: JSON.parse(localStorage.getItem('riq-user')||'null'),
+  races: JSON.parse(localStorage.getItem('riq-races')||'[]'),
+  devices: JSON.parse(localStorage.getItem('riq-devices')||'{}'),
+  goals: JSON.parse(localStorage.getItem('riq-goals')||'null'),
+  following: JSON.parse(localStorage.getItem('riq-following')||'[]'),
+  posts: JSON.parse(localStorage.getItem('riq-posts')||'[]'),
+  tier: localStorage.getItem('riq-tier')||'free', // 'free' | 'pro' | 'gym'
+  currentSplits: [],
+  currentPostType: 'result',
+  isAnnual: false,
+};
+const save=(k,v)=>localStorage.setItem('riq-'+k,JSON.stringify(v));
+const isPro=()=>APP.tier==='pro'||APP.tier==='gym';
+
+// ================================================================
+//  NAV
+// ================================================================
+const PAGE_TITLES={home:'DASHBOARD',planner:'RACE PLANNER',log:'RACE LOG',devices:'DEVICES & APPS',events:'FIND EVENTS',community:'COMMUNITY',leaderboard:'LEADERBOARD',social:'SOCIAL CONNECT',pricing:'PLANS & PRICING',account:'MY PROFILE'};
+const MOB_MAP={home:'mn-home',planner:'mn-planner',events:'mn-events',community:'mn-community',account:'mn-account'};
+
+function nav(id){
+  // Track pageview for owner dashboard
+  const views=JSON.parse(localStorage.getItem('riq-owner-views')||'{}');
+  views[id]=(views[id]||0)+1;
+  views._total=(views._total||0)+1;
+  localStorage.setItem('riq-owner-views',JSON.stringify(views));
+
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id)?.classList.add('active');
+  document.getElementById('topbar-title').textContent=PAGE_TITLES[id]||id.toUpperCase();
+
+  // Sidebar
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  document.getElementById('ni-'+id)?.classList.add('active');
+  // Drawer
+  document.querySelectorAll('.di').forEach(d=>d.classList.remove('active'));
+  document.getElementById('di-'+id)?.classList.add('active');
+  // Mobile
+  document.querySelectorAll('.mob-btn').forEach(b=>b.classList.remove('active'));
+  if(MOB_MAP[id]) document.getElementById(MOB_MAP[id])?.classList.add('active');
+
+  if(id==='home') renderDash();
+  if(id==='planner') calcPlan();
+  if(id==='log') renderLog();
+  if(id==='devices') renderDevices();
+  if(id==='events') renderEvts();
+  if(id==='community') renderCommunity();
+  if(id==='leaderboard') renderLeaderboard();
+  if(id==='social'){renderSocial();setTimeout(drawCard,100);}
+  if(id==='pricing') renderPricing();
+  if(id==='account') renderAccount();
+  window.scrollTo(0,0);
+}
+
+function swTab(btn,id){
+  btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const container=btn.closest('.page')||btn.closest('.modal')||document.body;
+  container.querySelectorAll('.tab-body').forEach(tb=>{
+    tb.classList.toggle('active',tb.id===id);
+  });
+}
+function openDrawer(){document.getElementById('drawer').classList.add('open');document.getElementById('dOverlay').classList.add('open');document.body.style.overflow='hidden';}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('dOverlay').classList.remove('open');document.body.style.overflow='';}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function notify(msg,color='var(--acid)'){const n=document.getElementById('notif');n.textContent=msg;n.style.borderColor=color;n.style.color=color;n.classList.add('show');setTimeout(()=>n.classList.remove('show'),3200);}
+
+// ================================================================
+//  TIER MANAGEMENT
+// ================================================================
+function updateTierUI(){
+  const pro=isPro();
+  const tierName=document.getElementById('tier-name-sb');
+  const tierAction=document.getElementById('tier-action-sb');
+  const topbarBtn=document.getElementById('topbar-user-btn');
+  const dashUpgrade=document.getElementById('dash-upgrade-btn');
+  if(tierName) tierName.textContent=APP.tier.toUpperCase();
+  if(tierAction) tierAction.textContent=pro?'Active subscription':'Upgrade to Pro →';
+  if(dashUpgrade) dashUpgrade.style.display=pro?'none':'inline-flex';
+  if(APP.user && topbarBtn){
+    topbarBtn.textContent=APP.user.name.split(' ')[0];
+    topbarBtn.className='topbar-user-btn'+(pro?' pro':'');
+  }
+}
+function requirePro(reason){
+  if(isPro()) return true;
+  document.getElementById('upgrade-reason').textContent=reason||'Unlock this feature with RaceIQ Pro';
+  openModal('upgradeModal');
+  return false;
+}
+function activatePro(){
+  APP.tier='pro'; localStorage.setItem('riq-tier','pro');
+  closeModal('upgradeModal');
+  updateTierUI();
+  notify('Welcome to RaceIQ Pro! ⚡ (Demo mode — Stripe needed in production)','var(--green)');
+  // Log to owner dashboard
+  const subs=JSON.parse(localStorage.getItem('riq-owner-subs')||'[]');
+  subs.push({tier:'pro',date:new Date().toISOString(),user:APP.user?.name||'Anonymous'});
+  localStorage.setItem('riq-owner-subs',JSON.stringify(subs));
+}
+
+// ================================================================
+//  PLANNER
+// ================================================================
+const STATIONS=[
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},{n:'SkiErg — 1km',t:'work',bMin:3.0,bMax:5.5},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},{n:'Sled Push — 50m',t:'work',bMin:2.3,bMax:5.2},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},{n:'Sled Pull — 50m',t:'work',bMin:2.8,bMax:5.0},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},{n:'Burpee Broad Jumps',t:'work',bMin:3.2,bMax:7.2},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},{n:'Rowing — 1km',t:'work',bMin:3.3,bMax:5.5},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},{n:'Farmers Carry — 200m',t:'work',bMin:2.3,bMax:4.5},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},{n:'Sandbag Lunges — 100m',t:'work',bMin:3.8,bMax:7.0},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},{n:'Wall Balls — 100 reps',t:'work',bMin:3.8,bMax:8.0},
+];
+const EFF_LABELS=['Easy','Steady','Moderate','Hard','Max'];
+const EFF_COLORS=['var(--green)','var(--blue)','var(--acid)','var(--orange)','var(--red)'];
+const fmt=m=>{const mi=Math.floor(m),s=Math.round((m-mi)*60);return mi+':'+String(s).padStart(2,'0');};
+const parseT=s=>{const p=(s||'0:0').split(':');return parseInt(p[0]||0)+(parseInt(p[1]||0)/60);};
+
+function calcPlan(){
+  const target=parseInt(document.getElementById('p-target')?.value||75);
+  const run=parseInt(document.getElementById('p-run')?.value||50);
+  const sled=parseInt(document.getElementById('p-sled')?.value||2);
+  const lvl=document.getElementById('p-lvl')?.value||'intermediate';
+  if(document.getElementById('p-target-v')) document.getElementById('p-target-v').textContent=target+' MIN';
+  if(document.getElementById('p-run-v')) document.getElementById('p-run-v').textContent='RUN '+run+'%';
+  if(document.getElementById('p-gym-v')) document.getElementById('p-gym-v').textContent='GYM '+(100-run)+'%';
+  if(document.getElementById('p-sled-v')) document.getElementById('p-sled-v').textContent={1:'Weak',2:'Medium',3:'Strong'}[sled];
+  const base=STATIONS.reduce((a,s)=>a+(s.bMin+s.bMax)/2,0);
+  let splits=STATIONS.map(s=>{
+    let t=((s.bMin+s.bMax)/2)/base*target;
+    if(s.t==='run') t*=(1+(50-run)*.006); else t*=(1-(50-run)*.004);
+    if(s.n.includes('Sled')) t*={1:1.22,2:1.0,3:.80}[sled];
+    return{...s,time:t};
+  });
+  const total=splits.reduce((a,s)=>a+s.time,0);
+  const sc=target/total;
+  splits=splits.map(s=>({...s,time:s.time*sc}));
+  APP.currentSplits=splits;
+  const maxT=Math.max(...splits.map(s=>s.time));
+  const totalRun=splits.filter(s=>s.t==='run').reduce((a,s)=>a+s.time,0);
+  const totalWork=splits.filter(s=>s.t==='work').reduce((a,s)=>a+s.time,0);
+  const cont=document.getElementById('plan-stations');
+  if(!cont) return;
+  cont.innerHTML=splits.map((s,i)=>{
+    const idx=Math.min(4,Math.floor((s.time/maxT)*5));
+    const pct=Math.round((s.time/target)*100);
+    return `<div class="stn-row">
+      <div class="stn-n">${i+1}</div>
+      <div><div class="stn-name">${s.n}</div><div class="stn-type">${s.t==='run'?'🏃 Run':'💪 Work'}</div></div>
+      <div class="stn-time ${s.t}">${fmt(s.time)}</div>
+      <div><div class="stn-eff" style="color:${EFF_COLORS[idx]}">${EFF_LABELS[idx]}</div><div class="eff-bar-wrap"><div class="eff-bar-fill" style="width:${pct*2.5}%;background:${s.t==='run'?'var(--blue)':'var(--acid)'}"></div></div></div>
+    </div>`;
+  }).join('');
+  const tots=document.getElementById('plan-totals');
+  if(tots) tots.innerHTML=`<div class="total-cell"><div class="total-n color-acid">${fmt(target)}</div><div class="total-l">Total</div></div><div class="total-cell"><div class="total-n color-blue">${fmt(totalRun)}</div><div class="total-l">Running</div></div><div class="total-cell"><div class="total-n color-orange">${fmt(totalWork)}</div><div class="total-l">Work</div></div>`;
+}
+
+async function getAICoach(){
+  if(!requirePro('AI coaching is a Pro feature. Get personalised station-by-station race coaching.')) return;
+  const target=document.getElementById('p-target')?.value||75;
+  const lvl=document.getElementById('p-lvl')?.value||'intermediate';
+  const run=document.getElementById('p-run')?.value||50;
+  const sled=document.getElementById('p-sled')?.value||2;
+  const weak=APP.currentSplits.reduce((a,b)=>a.time>b.time?a:b,{time:0});
+  document.getElementById('ai-placeholder').style.display='none';
+  document.getElementById('ai-loading').style.display='flex';
+  document.getElementById('ai-tips').style.display='none';
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:[{role:"user",content:`You are RaceIQ Hyrox coach. Give 4 sharp race tips for: Target ${target}min, Level: ${lvl}, Run bias: ${run}%, Sled confidence: ${{1:'weak',2:'moderate',3:'strong'}[sled]}, Weakest station: ${weak.n||'unknown'}\nReturn ONLY JSON: [{"icon":"emoji","title":"short title","tip":"2 sentence actionable advice"}]`}]})});
+    const d=await r.json();
+    let txt=d.content?.map(c=>c.text||'').join('')||'';
+    txt=txt.replace(/```json|```/g,'').trim();
+    const tips=JSON.parse(txt);
+    document.getElementById('ai-tips').innerHTML=tips.map(t=>`<div class="ai-tip"><div class="ai-tip-icon">${t.icon}</div><div class="ai-tip-text"><strong>${t.title}:</strong> ${t.tip}</div></div>`).join('');
+  }catch(e){
+    const fb=[{icon:'⚡',title:'Pacing',tip:`For ${target}min, start first runs 8% slower than goal pace. Energy conservation pays in wall balls.`},{icon:'🛷',title:'Sled Strategy',tip:'Drive from hips not arms. Lean 45° into the sled and push through each step. Most athletes lose 90+ seconds here.'},{icon:'🫁',title:'Breathing',tip:'3 deep diaphragm breaths before each work station. Resets heart rate before the clock starts.'},{icon:'🏁',title:'Final Push',tip:'Bank 15% energy for sandbag lunges and wall balls. These two stations decide sub-60 vs 62+ finishes.'}];
+    document.getElementById('ai-tips').innerHTML=fb.map(t=>`<div class="ai-tip"><div class="ai-tip-icon">${t.icon}</div><div class="ai-tip-text"><strong>${t.title}:</strong> ${t.tip}</div></div>`).join('');
+  }finally{
+    document.getElementById('ai-loading').style.display='none';
+    document.getElementById('ai-tips').style.display='block';
+  }
+}
+
+function savePlanToLog(){
+  const target=document.getElementById('p-target')?.value||75;
+  const cat=document.getElementById('p-cat')?.value||'open';
+  const r={id:Date.now(),city:'Strategy Plan',time:fmt(parseInt(target)),cat:cat.charAt(0).toUpperCase()+cat.slice(1),date:new Date().toLocaleDateString('en-GB'),notes:'From Race Planner',splits:APP.currentSplits.map(s=>s.time),planned:true};
+  if(!isPro()&&APP.races.length>=3){requirePro('Save more than 3 races with RaceIQ Pro.');return;}
+  APP.races.unshift(r);save('races',APP.races);notify('Plan saved to log! 💾');
+}
+
+// ================================================================
+//  RACE LOG
+// ================================================================
+function toggleAddRace(){const f=document.getElementById('add-race-form');f.style.display=f.style.display==='none'?'block':'none';if(f.style.display==='block') document.getElementById('lr-date').value=new Date().toISOString().split('T')[0];}
+function addRace(){
+  if(!isPro()&&APP.races.length>=3){requirePro('Save unlimited races with RaceIQ Pro. Free plan is limited to 3.');return;}
+  const city=document.getElementById('lr-city')?.value.trim();
+  const time=document.getElementById('lr-time')?.value.trim();
+  if(!city||!time){notify('Fill in city and time','var(--red)');return;}
+  const r={id:Date.now(),city,time,cat:document.getElementById('lr-cat')?.value,date:document.getElementById('lr-date')?.value||new Date().toLocaleDateString('en-GB'),place:document.getElementById('lr-place')?.value,notes:document.getElementById('lr-notes')?.value,splits:APP.currentSplits.length?APP.currentSplits.map(s=>s.time):null};
+  APP.races.unshift(r);save('races',APP.races);
+  document.getElementById('add-race-form').style.display='none';
+  renderLog();renderDash();
+  // Track for owner dashboard
+  const entries=JSON.parse(localStorage.getItem('riq-owner-race-entries')||'[]');
+  entries.push({date:new Date().toISOString(),user:APP.user?.name||'Anonymous',city,time});
+  localStorage.setItem('riq-owner-race-entries',JSON.stringify(entries));
+  notify('Race logged! 🏁');
+}
+function clearLog(){if(confirm('Delete all race entries?')){APP.races=[];save('races',APP.races);renderLog();renderDash();}}
+function renderLog(){
+  const grid=document.getElementById('log-grid');
+  if(!grid) return;
+  if(!APP.races.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1">No races yet — log your first!</div>';return;}
+  const best=Math.min(...APP.races.filter(r=>parseT(r.time)>0).map(r=>parseT(r.time)));
+  grid.innerHTML=APP.races.map(r=>{
+    const isPR=Math.abs(parseT(r.time)-best)<0.01&&APP.races.length>1;
+    const bars=r.splits?r.splits.map((t,i)=>{const mx=Math.max(...r.splits);const h=Math.round((t/mx)*100);return `<div style="flex:1;height:22px;background:var(--void);border-radius:1px;position:relative;overflow:hidden"><div style="position:absolute;bottom:0;left:0;right:0;height:${h}%;background:${i%2===0?'var(--blue)':'var(--acid)'};opacity:.5"></div></div>`;}).join(''):'';
+    return `<div class="race-card">
+      <div style="font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:1px">${r.date}</div>
+      <div class="rc-city">${r.city.toUpperCase()}</div>
+      <div class="rc-time">${r.time}</div>
+      <div class="rc-meta">
+        <div class="rc-badge">${r.cat}</div>
+        ${r.place?`<div class="rc-badge">Pl. ${r.place}</div>`:''}
+        ${isPR?'<div class="rc-badge pr">⚡ PR</div>':''}
+        ${r.planned?'<div class="rc-badge" style="color:var(--blue);border-color:rgba(77,158,255,.25)">Planned</div>':''}
+      </div>
+      ${r.notes?`<div style="font-size:11px;color:var(--muted);margin-top:6px;font-style:italic">"${r.notes}"</div>`:''}
+      ${bars?`<div style="display:flex;gap:2px;margin-top:10px">${bars}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button class="btn btn-ghost btn-sm" onclick='openShareModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>📤 Share</button>
+        <button class="btn btn-ghost btn-sm" onclick='generateCard(${JSON.stringify(r).replace(/'/g,"&#39;")})'>🖼 Card</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ================================================================
+//  DEVICES
+// ================================================================
+const WATCHES=[{id:'garmin',name:'Garmin',type:'Smartwatch',icon:'⌚',desc:'Garmin Connect API — OAuth 1.0a, instant trial access, covers 60%+ of Hyrox athletes.'},{id:'apple',name:'Apple Watch',type:'Smartwatch (iOS only)',icon:'🍎',desc:'Apple Health — requires native iOS Swift app. Cannot work in a web browser.'},{id:'whoop',name:'Whoop 4.0',type:'Recovery Band',icon:'💚',desc:'Whoop API — partner application required, syncs strain, HRV, recovery scores.'},{id:'polar',name:'Polar',type:'Smartwatch',icon:'🔴',desc:'Polar Flow API — public access, running power, cadence, HR zones.'},{id:'suunto',name:'Suunto',type:'Smartwatch',icon:'🔵',desc:'Suunto App API — partner required, GPS routes, detailed HR data.'},{id:'coros',name:'Coros',type:'Smartwatch',icon:'⭕',desc:'No public API — email api@coros.com for partner access.'},{id:'samsung',name:'Samsung Galaxy',type:'Smartwatch',icon:'📟',desc:'Samsung Health API — OAuth 2.0, workouts, sleep, body composition.'},{id:'fitbit',name:'Fitbit',type:'Activity Tracker',icon:'💙',desc:'Fitbit API — instant access, HR zones, active minutes.'}];
+const FITNESSAPPS=[{id:'strava',name:'Strava',type:'Training App',icon:'🏃',desc:'Strava API — instant OAuth 2.0 access, all activities, segments, PRs, HR data.'},{id:'trainingpeaks',name:'TrainingPeaks',type:'Coaching',icon:'📈',desc:'Import structured training plans, power & HR analytics.'},{id:'zwift',name:'Zwift',type:'Indoor Training',icon:'🚴',desc:'Sync indoor cycling and running workouts with power data.'},{id:'myfitnesspal',name:'MyFitnessPal',type:'Nutrition',icon:'🥗',desc:'Nutrition tracking — correlate calorie intake with race performance.'},{id:'nike',name:'Nike Run Club',type:'Running',icon:'👟',desc:'Import Nike Run Club activities and guided run data.'},{id:'komoot',name:'Komoot',type:'Routes',icon:'🗺️',desc:'Import outdoor run routes and elevation data.'}];
+function renderDevices(){
+  document.getElementById('watches-grid').innerHTML=[...WATCHES].map(d=>devCard(d)).join('');
+  document.getElementById('apps-grid').innerHTML=[...FITNESSAPPS].map(d=>devCard(d)).join('');
+  renderSyncHistory();updateBadges();
+}
+function devCard(d){
+  const connected=!!APP.devices[d.id];
+  return `<div class="dev-card ${connected?'connected':''}" onclick="openDevModal('${d.id}')">
+    <div class="dev-status">${connected?'✅':''}</div>
+    <div class="dev-icon">${d.icon}</div>
+    <div class="dev-name">${d.name}</div>
+    <div class="dev-type">${d.type}</div>
+    ${connected?`<div class="dev-sync">Synced: ${APP.devices[d.id].lastSync}</div>`:''}
+    <button class="btn btn-sm ${connected?'btn-danger':'btn-acid'}" style="margin-top:8px;width:100%">${connected?'DISCONNECT':'CONNECT'}</button>
+  </div>`;
+}
+function openDevModal(id){
+  if(!requirePro('Device sync is a Pro feature. Connect Garmin, Strava, Whoop and more.')) return;
+  const all=[...WATCHES,...FITNESSAPPS];
+  const d=all.find(x=>x.id===id);
+  const connected=!!APP.devices[id];
+  document.getElementById('devModalTitle').textContent=d.name.toUpperCase();
+  document.getElementById('devModalBody').innerHTML=`
+    <div style="text-align:center;margin-bottom:20px"><div style="font-size:48px">${d.icon}</div><div style="font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px">${d.type}</div></div>
+    <div class="info-banner mb16"><div style="font-size:14px;flex-shrink:0">ℹ️</div><p>${d.desc} This demo simulates the connection — real OAuth requires a backend server.</p></div>
+    ${connected
+      ?`<button class="btn btn-danger" style="width:100%" onclick="disconnectDev('${id}')">DISCONNECT ${d.name.toUpperCase()}</button>`
+      :`<button class="btn btn-acid" style="width:100%" onclick="connectDev('${id}')">CONNECT ${d.name.toUpperCase()} (DEMO)</button>`}`;
+  openModal('devModal');
+}
+function connectDev(id){
+  const now=new Date().toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  APP.devices[id]={connected:true,lastSync:now};save('devices',APP.devices);
+  const log=JSON.parse(localStorage.getItem('riq-synclog')||'[]');
+  log.unshift({device:id,time:now,records:Math.floor(Math.random()*40)+5});
+  localStorage.setItem('riq-synclog',JSON.stringify(log.slice(0,20)));
+  closeModal('devModal');renderDevices();
+  notify(`${id.charAt(0).toUpperCase()+id.slice(1)} connected! ✅`,'var(--green)');
+}
+function disconnectDev(id){delete APP.devices[id];save('devices',APP.devices);closeModal('devModal');renderDevices();notify('Device disconnected');}
+function renderSyncHistory(){
+  const log=JSON.parse(localStorage.getItem('riq-synclog')||'[]');
+  const el=document.getElementById('sync-history-log');
+  if(!el) return;
+  if(!log.length){el.innerHTML='<div class="empty">No sync activity yet</div>';return;}
+  const all=[...WATCHES,...FITNESSAPPS];
+  el.innerHTML='<div class="p-title">Recent Syncs</div>'+log.map(l=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;gap:10px;align-items:center"><span style="font-size:18px">${all.find(d=>d.id===l.device)?.icon||'⌚'}</span><div><div style="font-size:13px;font-weight:500">${l.device.charAt(0).toUpperCase()+l.device.slice(1)}</div><div style="font-family:var(--fm);font-size:9px;color:var(--muted)">${l.time}</div></div></div>
+    <div style="font-family:var(--fm);font-size:10px;color:var(--green)">${l.records} records</div>
+  </div>`).join('');
+}
+
+// ================================================================
+//  EVENTS
+// ================================================================
+const EVENTS=[
+  {id:1,title:'HYROX London',city:'London',country:'UK',region:'UK',date:'2026-03-28',cats:['open','pro','doubles'],spots:420,cap:3000,price:'£89'},
+  {id:2,title:'HYROX Manchester',city:'Manchester',country:'UK',region:'UK',date:'2026-04-05',cats:['open','doubles'],spots:0,cap:2500,price:'£85'},
+  {id:3,title:'HYROX Berlin',city:'Berlin',country:'Germany',region:'Europe',date:'2026-04-12',cats:['open','pro','doubles'],spots:800,cap:4000,price:'€95'},
+  {id:4,title:'HYROX NYC',city:'New York',country:'USA',region:'North America',date:'2026-04-19',cats:['open','pro'],spots:1200,cap:3500,price:'$99'},
+  {id:5,title:'HYROX Hamburg',city:'Hamburg',country:'Germany',region:'Europe',date:'2026-05-03',cats:['open','pro','doubles'],spots:650,cap:4500,price:'€90'},
+  {id:6,title:'HYROX Dubai',city:'Dubai',country:'UAE',region:'Middle East',date:'2026-05-10',cats:['open','doubles'],spots:340,cap:2000,price:'AED 350'},
+  {id:7,title:'HYROX Sydney',city:'Sydney',country:'Australia',region:'Asia Pacific',date:'2026-05-17',cats:['open','pro'],spots:900,cap:2800,price:'A$129'},
+  {id:8,title:'HYROX Chicago',city:'Chicago',country:'USA',region:'North America',date:'2026-06-07',cats:['open','pro','doubles'],spots:1500,cap:3200,price:'$95'},
+  {id:9,title:'HYROX Paris',city:'Paris',country:'France',region:'Europe',date:'2026-06-14',cats:['open','doubles'],spots:220,cap:3000,price:'€92'},
+  {id:10,title:'HYROX Edinburgh',city:'Edinburgh',country:'UK',region:'UK',date:'2026-09-13',cats:['open'],spots:300,cap:1800,price:'£79'},
+  {id:11,title:'HYROX Amsterdam',city:'Amsterdam',country:'Netherlands',region:'Europe',date:'2026-06-21',cats:['open','pro'],spots:780,cap:2500,price:'€88'},
+  {id:12,title:'HYROX Singapore',city:'Singapore',country:'Singapore',region:'Asia Pacific',date:'2026-07-05',cats:['open','doubles'],spots:400,cap:2000,price:'S$149'},
+  {id:13,title:'HYROX Munich',city:'Munich',country:'Germany',region:'Europe',date:'2026-08-02',cats:['open','pro','doubles'],spots:1100,cap:4000,price:'€94'},
+  {id:14,title:'HYROX Tokyo',city:'Tokyo',country:'Japan',region:'Asia Pacific',date:'2026-09-06',cats:['open','doubles'],spots:1200,cap:2500,price:'¥14,000'},
+  {id:15,title:'HYROX Lisbon',city:'Lisbon',country:'Portugal',region:'Europe',date:'2026-09-27',cats:['open','pro'],spots:900,cap:2200,price:'€82'},
+  {id:16,title:'HYROX Toronto',city:'Toronto',country:'Canada',region:'North America',date:'2026-10-04',cats:['open','doubles'],spots:700,cap:2500,price:'C$119'},
+  {id:17,title:'HYROX Zurich',city:'Zurich',country:'Switzerland',region:'Europe',date:'2026-10-11',cats:['open','pro'],spots:500,cap:2000,price:'CHF 120'},
+  {id:18,title:'HYROX World Championships',city:'Nice',country:'France',region:'Europe',date:'2026-11-07',cats:['open','pro','doubles'],spots:2500,cap:10000,price:'€149'},
+  {id:19,title:'HYROX Los Angeles',city:'Los Angeles',country:'USA',region:'North America',date:'2026-11-22',cats:['open','pro'],spots:1300,cap:3000,price:'$99'},
+  {id:20,title:'HYROX Melbourne',city:'Melbourne',country:'Australia',region:'Asia Pacific',date:'2026-10-25',cats:['open'],spots:800,cap:2200,price:'A$125'},
+];
+function renderEvts(){filterEvts();}
+function filterEvts(){
+  const q=(document.getElementById('evt-q')?.value||'').toLowerCase();
+  const reg=document.getElementById('evt-region')?.value||'';
+  const mon=document.getElementById('evt-month')?.value||'';
+  const cat=document.getElementById('evt-cat')?.value||'';
+  let list=EVENTS.filter(e=>{
+    const d=new Date(e.date);
+    if(q&&!e.city.toLowerCase().includes(q)&&!e.country.toLowerCase().includes(q)&&!e.title.toLowerCase().includes(q)) return false;
+    if(reg&&e.region!==reg) return false;
+    if(mon&&d.getMonth()+1!==parseInt(mon)) return false;
+    if(cat&&!e.cats.includes(cat)) return false;
+    return true;
+  }).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const countEl=document.getElementById('evt-count');
+  if(countEl) countEl.textContent=`Showing ${list.length} event${list.length!==1?'s':''}`;
+  const listEl=document.getElementById('evt-list');
+  if(!listEl) return;
+  if(!list.length){listEl.innerHTML='<div class="empty">No events match your filters</div>';return;}
+  listEl.innerHTML=list.map(e=>{
+    const d=new Date(e.date);const sold=e.spots===0;
+    return `<div class="evt-card" onclick="openEvtModal(${e.id})">
+      <div class="evt-date"><div class="evt-day">${d.getDate()}</div><div class="evt-month">${d.toLocaleString('en',{month:'short'})} ${d.getFullYear()}</div></div>
+      <div>
+        <div class="evt-title">${e.title}</div>
+        <div class="evt-loc">📍 ${e.city}, ${e.country}</div>
+        <div class="evt-tags">${e.cats.map(c=>`<span class="etag etag-${c}">${c.toUpperCase()}</span>`).join('')}${sold?'<span class="etag etag-sold">SOLD OUT</span>':''}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:var(--fm);font-size:12px;color:var(--acid);font-weight:600">${e.price}</div>
+        <div style="font-family:var(--fm);font-size:9px;color:${sold?'var(--red)':e.spots/e.cap<.2?'var(--orange)':'var(--muted)'};margin-top:3px">${sold?'SOLD OUT':e.spots+' spots'}</div>
+        <button class="btn btn-sm ${sold?'btn-ghost':'btn-acid'}" style="margin-top:6px">${sold?'WAITLIST':'REGISTER'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function nearMe(){notify('📍 Using UK as your location (demo). In production, uses browser Geolocation API.','var(--blue)');document.getElementById('evt-region').value='UK';filterEvts();}
+function openEvtModal(id){
+  const e=EVENTS.find(x=>x.id===id);const d=new Date(e.date);const sold=e.spots===0;
+  document.getElementById('evtModalTitle').textContent=e.title.toUpperCase();
+  document.getElementById('evtModalBody').innerHTML=`
+    <div class="g2 mb16">
+      <div style="background:var(--void);border:1px solid var(--border);padding:14px;border-radius:var(--r)"><div style="font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Date</div><div style="font-family:var(--fd);font-size:24px;color:var(--acid)">${d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div></div>
+      <div style="background:var(--void);border:1px solid var(--border);padding:14px;border-radius:var(--r)"><div style="font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Entry Fee</div><div style="font-family:var(--fd);font-size:28px">${e.price}</div></div>
+    </div>
+    <div style="background:var(--void);border:1px solid var(--border);padding:14px;border-radius:var(--r);margin-bottom:14px">
+      <div style="font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Availability</div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--fm);font-size:10px;color:var(--muted);margin-bottom:6px"><span>${e.spots} / ${e.cap} spots remaining</span><span>${Math.round(e.spots/e.cap*100)}%</span></div>
+      <div style="background:var(--mid);height:5px;border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.round(e.spots/e.cap*100)}%;background:${sold?'var(--red)':e.spots/e.cap<.2?'var(--orange)':'var(--green)'}"></div></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${e.cats.map(c=>`<span class="etag etag-${c}">${c.toUpperCase()}</span>`).join('')}</div>
+    <div class="g2"><button class="btn btn-acid" onclick="closeModal('evtModal');notify('Opens hyrox.com in production 🏁')">${sold?'JOIN WAITLIST':'REGISTER (DEMO)'}</button><button class="btn btn-outline" onclick="closeModal('evtModal');nav('planner')">BUILD STRATEGY</button></div>`;
+  openModal('evtModal');
+}
+
+// ================================================================
+//  COMMUNITY
+// ================================================================
+const SEED=[
+  {id:1,author:'Sarah K.',av:'SK',city:'London',time:'2h ago',type:'result',text:'Just ran HYROX London — new PB! 🏁 The RaceIQ strategy completely changed how I paced the sled push.',ach:{time:'59:44',evt:'HYROX London'},splits:[5.2,3.8,5.0,3.5,5.3,3.2,4.9,5.1,5.4,3.9,5.1,2.8,5.0,4.9,5.2,5.8],likes:47,comments:12,liked:false},
+  {id:2,author:'Marcus R.',av:'MR',city:'New York',time:'5h ago',type:'tip',text:'Pro tip for burpee broad jumps: 3 deep breaths before starting, stay controlled on landing, count in sets of 10.',likes:31,comments:8,liked:false},
+  {id:3,author:'Team SweatCo',av:'TS',city:'Berlin',time:'1d ago',type:'milestone',text:'Our doubles team just broke 55 minutes! 🔥 HYROX Berlin crushed. Thanks for the sled pull tips.',ach:{time:'54:38',evt:'HYROX Berlin (Doubles)'},likes:89,comments:24,liked:false},
+  {id:4,author:'Jess T.',av:'JT',city:'Sydney',time:'2d ago',type:'tip',text:'Wall balls: break 100 reps into 4×25. Rest 8 seconds between sets. Trust the data — you\'ll finish faster than going to failure.',likes:56,comments:15,liked:false},
+];
+const TRENDING=['#slashyourPR','#sub60','#hyroxlondon2026','#sledpush','#wallballs','#neverslip'];
+const ATHLETES=[{name:'Sarah K.',city:'London',stat:'59:44 PR'},{name:'Dan H.',city:'Hamburg',stat:'52:18 PR'},{name:'Emma S.',city:'London',stat:'53:44 PR'},{name:'Tom B.',city:'Berlin',stat:'64:05 PR'}];
+
+function renderCommunity(){
+  const av=document.getElementById('comp-av');
+  if(av&&APP.user){av.textContent=APP.user.name.split(' ').map(x=>x[0]).join('');av.style.background=APP.user.color||'var(--mid)';}
+  const all=[...APP.posts,...SEED].sort((a,b)=>b.id-a.id);
+  const feedEl=document.getElementById('feed');
+  if(feedEl) feedEl.innerHTML=all.map(p=>renderPost(p)).join('');
+  const trendEl=document.getElementById('trending');
+  if(trendEl) trendEl.innerHTML=TRENDING.map((t,i)=>`<div class="trend-item"><div class="trend-rank">${i+1}</div><div><div class="trend-tag">${t}</div></div><div class="trend-count">${Math.floor(Math.random()*200)+30}</div></div>`).join('');
+  const athEl=document.getElementById('active-aths');
+  if(athEl) athEl.innerHTML=ATHLETES.map((a,i)=>`<div class="active-ath">
+    <div class="avatar" style="background:hsl(${i*60+120},50%,22%)">${a.name.split(' ').map(x=>x[0]).join('')}</div>
+    <div class="aa-info"><div class="aa-name">${a.name}</div><div class="aa-stat">${a.city} · ${a.stat}</div></div>
+    <button class="follow-btn ${APP.following.includes(a.name)?'following':''}" onclick="toggleFollow('${a.name}',this)">${APP.following.includes(a.name)?'Following':'Follow'}</button>
+  </div>`).join('');
+}
+function renderPost(p){
+  const tc={result:'var(--acid)',tip:'var(--blue)',milestone:'var(--orange)'}[p.type]||'var(--muted)';
+  const ach=p.ach?`<div class="post-ach"><span style="font-size:24px">🏁</span><div><div class="ach-time">${p.ach.time}</div><div class="ach-evt">${p.ach.evt}</div></div></div>`:'';
+  const splits=p.splits?`<div style="display:flex;gap:2px;margin-top:10px;height:24px">${p.splits.map((t,i)=>{const mx=Math.max(...p.splits);const h=Math.round((t/mx)*100);return `<div style="flex:1;height:100%;background:var(--void);position:relative;overflow:hidden;border-radius:1px"><div style="position:absolute;bottom:0;left:0;right:0;height:${h}%;background:${i%2===0?'var(--blue)':'var(--acid)'};opacity:.5"></div></div>`;}).join('')}</div>`:'';
+  return `<div class="post">
+    <div class="post-top"><div class="avatar" style="background:hsl(${p.id*47+90},40%,20%)">${p.av}</div><div class="post-meta"><div class="post-author">${p.author} <span style="font-family:var(--fm);font-size:8px;color:var(--muted)">${p.city}</span></div><div class="post-time">${p.time}</div></div><span class="post-type" style="background:${tc}18;color:${tc};border:1px solid ${tc}35">${p.type.toUpperCase()}</span></div>
+    <div class="post-body">${p.text}${ach}${splits}</div>
+    <div class="post-footer">
+      <button class="react ${p.liked?'liked':''}" onclick="likePost(${p.id},this)">❤️ <span class="lc">${p.likes}</span></button>
+      <button class="react">💬 ${p.comments||0}</button>
+      <button class="react" onclick="openShareModalBasic('${p.author}')">↗️ Share</button>
+    </div>
+  </div>`;
+}
+function setPostType(t){APP.currentPostType=t;const el=document.getElementById('comp-type-ind');el.style.display='block';el.textContent={'result':'🏁','tip':'💡','milestone':'🏆'}[t]+' Posting as: '+t.toUpperCase();}
+function submitPost(){
+  if(!APP.user){notify('Sign in to post','var(--orange)');return;}
+  if(!isPro()){requirePro('Posting to the community requires RaceIQ Pro.');return;}
+  const text=document.getElementById('comp-text')?.value.trim();
+  if(!text){notify('Write something first!','var(--orange)');return;}
+  const p={id:Date.now(),author:APP.user.name,av:APP.user.name.split(' ').map(x=>x[0]).join(''),city:APP.user.city||'',time:'Just now',type:APP.currentPostType,text,likes:0,comments:0,liked:false};
+  if(APP.currentSplits.length&&APP.currentPostType==='result') p.splits=APP.currentSplits.map(s=>s.time);
+  APP.posts.unshift(p);save('posts',APP.posts);
+  document.getElementById('comp-text').value='';
+  document.getElementById('comp-type-ind').style.display='none';
+  renderCommunity();notify('Posted! 🚀');
+}
+function likePost(id,btn){
+  const s=SEED.find(p=>p.id===id);const u=APP.posts.find(p=>p.id===id);const p=s||u;
+  if(p){p.liked=!p.liked;p.likes+=p.liked?1:-1;btn.querySelector('.lc').textContent=p.likes;btn.classList.toggle('liked',p.liked);if(u)save('posts',APP.posts);}
+}
+function toggleFollow(name,btn){const i=APP.following.indexOf(name);if(i===-1){APP.following.push(name);btn.textContent='Following';btn.classList.add('following');}else{APP.following.splice(i,1);btn.textContent='Follow';btn.classList.remove('following');}save('following',APP.following);}
+
+// ================================================================
+//  LEADERBOARD
+// ================================================================
+const LB_DATA={
+  open:[{name:'Sarah K.',city:'London',time:'59:44',cat:'F35-39'},{name:'Marcus R.',city:'NYC',time:'61:12',cat:'M30-34'},{name:'Jess T.',city:'Sydney',time:'62:38',cat:'F25-29'},{name:'Tom B.',city:'Berlin',time:'64:05',cat:'M40-44'},{name:'Layla M.',city:'Dubai',time:'65:22',cat:'F30-34'},{name:'Chris V.',city:'Amsterdam',time:'66:10',cat:'M25-29'},{name:'Fiona W.',city:'Toronto',time:'67:48',cat:'F40-44'},{name:'Raj P.',city:'Singapore',time:'68:33',cat:'M35-39'},{name:'Anna B.',city:'Stockholm',time:'69:14',cat:'F35-39'},{name:'Luis G.',city:'Madrid',time:'70:02',cat:'M45-49'}],
+  pro:[{name:'Dan H.',city:'Hamburg',time:'52:18',cat:'M PRO'},{name:'Emma S.',city:'London',time:'53:44',cat:'F PRO'},{name:'Luca M.',city:'Milan',time:'54:59',cat:'M PRO'},{name:'Nina K.',city:'Oslo',time:'56:22',cat:'F PRO'},{name:'Jake L.',city:'Chicago',time:'57:44',cat:'M PRO'}],
+  doubles:[{name:'Smith & Jones',city:'Manchester',time:'58:12',cat:'Mixed'},{name:'Team Velocity',city:'NYC',time:'60:34',cat:'M/M'},{name:'The Swedes',city:'Stockholm',time:'61:55',cat:'F/F'}],
+  local:[{name:'Alex T.',city:'Your City',time:'75:00',cat:'M30-34'},{name:'Sam W.',city:'Your City',time:'78:30',cat:'F25-29'},{name:'Pat H.',city:'Your City',time:'82:15',cat:'M35-39'}]
+};
+function renderLeaderboard(){
+  ['open','pro','doubles','local'].forEach(cat=>{
+    const el=document.getElementById('lb-'+cat);if(!el)return;
+    const data=LB_DATA[cat];const best=parseT(data[0].time);
+    const rc=['gold','silver','bronze'];
+    // Free users only see top 3
+    const showAll=isPro();
+    const visible=showAll?data:data.slice(0,3);
+    el.innerHTML=`<div class="lb-hdr"><span>#</span><span>Athlete</span><span>Cat</span><span>Time</span><span>Pace</span></div>`+
+      visible.map((a,i)=>{const pct=Math.round((best/parseT(a.time))*100);return `<div class="lb-row"><div class="lb-rank ${rc[i]||''}">${i+1}</div><div><div class="lb-name">${a.name}</div><div class="lb-cat-text">📍 ${a.city}</div></div><div style="font-family:var(--fm);font-size:9px;color:var(--muted)">${a.cat}</div><div class="lb-time">${a.time}</div><div class="lb-bar-wrap"><div class="lb-bar-fill" style="width:${pct}%"></div></div></div>`;}).join('')+
+      (!showAll&&data.length>3?`<div style="padding:16px;text-align:center"><div class="pro-gate"><div class="pro-gate-icon">🔒</div><div class="pro-gate-title">PRO FEATURE</div><div class="pro-gate-text">${data.length-3} more athletes hidden. Upgrade to see the full leaderboard.</div><button class="btn btn-pro" onclick="nav('pricing')">UPGRADE TO PRO</button></div></div>`:'');
+  });
+}
+
+// ================================================================
+//  SOCIAL CONNECT
+// ================================================================
+function renderSocial(){
+  const raceSel=document.getElementById('social-race-sel');
+  if(raceSel){
+    raceSel.innerHTML='<option value="">— Choose a race —</option>'+APP.races.map((r,i)=>`<option value="${i}">${r.city} — ${r.time}</option>`).join('');
+    raceSel.onchange=()=>{
+      const i=parseInt(raceSel.value);const prev=document.getElementById('social-race-preview');
+      if(isNaN(i)){prev.style.display='none';return;}
+      const r=APP.races[i];prev.style.display='block';
+      prev.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-family:var(--fd);font-size:20px">${r.city.toUpperCase()}</div><div style="font-family:var(--fm);font-size:9px;color:var(--muted)">${r.date} · ${r.cat}</div></div><div style="font-family:var(--fd);font-size:30px;color:var(--acid)">${r.time}</div></div>`;
+      drawCard(r);
+    };
+  }
+  const plat=document.getElementById('social-platforms');
+  if(plat){
+    plat.innerHTML=[
+      {id:'instagram',name:'Instagram',icon:'📸',color:'#e4405f',note:'Copy link (no API key needed)'},
+      {id:'tiktok',name:'TikTok',icon:'🎵',color:'#ff0050',note:'Copy link (no API key needed)'},
+      {id:'facebook',name:'Facebook',icon:'👥',color:'#1877f2',note:'Direct share — works now'},
+      {id:'strava',name:'Strava',icon:'🏃',color:'#FC4C02',note:APP.devices['strava']?'✅ Connected':'Connect in Devices & Apps'},
+      {id:'twitter',name:'X / Twitter',icon:'🐦',color:'#1da1f2',note:'Direct share — works now'},
+    ].map(p=>`<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:20px">${p.icon}</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:${p.color}">${p.name}</div><div style="font-family:var(--fm);font-size:9px;color:var(--muted);margin-top:2px">${p.note}</div></div>
+      <button onclick="shareTo('${p.id}','Test post from RaceIQ 🏁','https://raceiq.app')" style="background:none;border:1px solid var(--border);color:var(--dim);font-family:var(--fm);font-size:8px;padding:4px 10px;cursor:pointer;border-radius:var(--r);letter-spacing:1px;text-transform:uppercase;transition:all .2s" onmouseover="this.style.borderColor='${p.color}';this.style.color='${p.color}'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--dim)'">Share</button>
+    </div>`).join('');
+  }
+}
+function triggerShare(){
+  if(!isPro()){requirePro('Social sharing and result cards are Pro features.');return;}
+  const i=parseInt(document.getElementById('social-race-sel')?.value);
+  if(isNaN(i)){notify('Select a race first','var(--orange)');return;}
+  openShareModal(APP.races[i]);
+}
+function triggerCard(){
+  if(!isPro()){requirePro('Downloadable result cards are a Pro feature.');return;}
+  const i=parseInt(document.getElementById('social-race-sel')?.value);
+  if(isNaN(i)){notify('Select a race first','var(--orange)');return;}
+  generateCard(APP.races[i]);
+}
+function shareTo(platform,text,url){
+  const enc_t=encodeURIComponent(text),enc_u=encodeURIComponent(url);
+  if(platform==='instagram'||platform==='tiktok'){navigator.clipboard.writeText(url).catch(()=>{});notify(`Link copied! Open ${platform==='instagram'?'Instagram':'TikTok'} and paste 📋`);}
+  else if(platform==='facebook'){window.open(`https://www.facebook.com/sharer/sharer.php?u=${enc_u}&quote=${enc_t}`,'_blank','width=600,height=500');}
+  else if(platform==='twitter'){window.open(`https://twitter.com/intent/tweet?text=${enc_t}&url=${enc_u}&hashtags=Hyrox,RaceIQ`,'_blank','width=600,height=500');}
+  else if(platform==='strava'){notify('Posts to Strava activity feed once OAuth connected 🏃','var(--orange)');}
+}
+function openShareModal(race){
+  if(!isPro()){requirePro('Sharing race results requires RaceIQ Pro.');return;}
+  document.getElementById('shareModalBody').innerHTML=`
+    <div style="background:var(--void);border:1px solid var(--border);padding:12px 16px;border-radius:var(--r);margin-bottom:18px;font-size:13px;color:var(--dim)">Just finished ${race.city} in ${race.time}! 🏁 Hyrox ${race.cat} — powered by RaceIQ strategy. https://raceiq.app</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      ${[['instagram','📸 Instagram','linear-gradient(135deg,#f09433,#dc2743)'],['tiktok','🎵 TikTok','#010101'],['facebook','👥 Facebook','#1877f2'],['twitter','🐦 X / Twitter','#1da1f2']].map(([p,l,bg])=>`<button onclick="shareTo('${p}','Just finished ${race.city} in ${race.time}! 🏁','https://raceiq.app')" style="background:${bg};color:#fff;border:none;padding:11px;border-radius:var(--r);cursor:pointer;font-family:var(--fm);font-size:10px;letter-spacing:1px">${l}</button>`).join('')}
+    </div>
+    <button onclick="generateCard(${JSON.stringify(race).replace(/"/g,'&quot;')})" style="width:100%;background:var(--acid);color:var(--bg);border:none;padding:12px;border-radius:var(--r);cursor:pointer;font-family:var(--fd);font-size:18px;letter-spacing:2px">⬇ DOWNLOAD RESULT CARD</button>
+    <div style="font-family:var(--fm);font-size:9px;color:var(--muted);text-align:center;margin-top:8px">1080×1080 PNG — share on any platform</div>`;
+  openModal('shareModal');
+}
+function openShareModalBasic(author){
+  document.getElementById('shareModalBody').innerHTML=`
+    <div style="background:var(--void);border:1px solid var(--border);padding:12px 16px;border-radius:var(--r);margin-bottom:18px;font-size:13px;color:var(--dim)">Check out this Hyrox result from ${author} on RaceIQ 🏁 https://raceiq.app</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      ${[['facebook','👥 Facebook','#1877f2'],['twitter','🐦 X / Twitter','#1da1f2']].map(([p,l,bg])=>`<button onclick="shareTo('${p}','Check out this result on RaceIQ 🏁','https://raceiq.app')" style="background:${bg};color:#fff;border:none;padding:11px;border-radius:var(--r);cursor:pointer;font-family:var(--fm);font-size:10px;letter-spacing:1px">${l}</button>`).join('')}
+      <button onclick="navigator.clipboard.writeText('https://raceiq.app').then(()=>notify('Link copied! 🔗','var(--green)'))" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:11px;border-radius:var(--r);cursor:pointer;font-family:var(--fm);font-size:10px;letter-spacing:1px">🔗 Copy Link</button>
+    </div>`;
+  openModal('shareModal');
+}
+function generateCard(race){
+  if(!isPro()){requirePro('Result cards are a Pro feature.');return;}
+  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1080;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#07070a';ctx.fillRect(0,0,1080,1080);
+  ctx.strokeStyle='rgba(200,240,58,0.04)';ctx.lineWidth=1;
+  for(let x=0;x<1080;x+=54){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,1080);ctx.stroke();}
+  for(let y=0;y<1080;y+=54){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(1080,y);ctx.stroke();}
+  ctx.fillStyle='#c8f03a';ctx.fillRect(0,0,1080,6);
+  ctx.font='bold 52px Arial';ctx.fillStyle='#c8f03a';ctx.fillText('RACEIQ',72,100);
+  ctx.font='22px monospace';ctx.fillStyle='#4a4a55';ctx.fillText('/ HYROX RACE INTELLIGENCE',72,132);
+  ctx.fillStyle='#1c1c22';ctx.fillRect(72,155,936,1);
+  ctx.font='bold 80px Arial';ctx.fillStyle='#e6e6f0';ctx.fillText((race.city||'MY RACE').toUpperCase().slice(0,18),72,270);
+  ctx.font='24px monospace';ctx.fillStyle='#4a4a55';ctx.fillText(race.date||'',72,310);
+  ctx.font='bold 180px Arial';ctx.fillStyle='#c8f03a';ctx.fillText(race.time||'--:--',72,510);
+  ctx.fillStyle='rgba(200,240,58,.1)';ctx.strokeStyle='rgba(200,240,58,.3)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect?ctx.roundRect(72,540,180,40,3):ctx.rect(72,540,180,40);ctx.fill();ctx.stroke();
+  ctx.font='bold 20px monospace';ctx.fillStyle='#c8f03a';ctx.fillText((race.cat||'OPEN').toUpperCase(),96,566);
+  if(race.splits&&race.splits.length){
+    const cX=72,cY=620,cW=936,cH=160,max=Math.max(...race.splits);
+    const bW=Math.floor(cW/race.splits.length)-4;
+    race.splits.forEach((t,i)=>{const h=Math.round((t/max)*cH),x=cX+i*(bW+4),y=cY+cH-h;ctx.fillStyle=i%2===0?'rgba(77,158,255,0.6)':'rgba(200,240,58,0.6)';ctx.fillRect(x,y,bW,h);});
+  }
+  ctx.fillStyle='#1c1c22';ctx.fillRect(0,940,1080,1);
+  ctx.font='22px monospace';ctx.fillStyle='#4a4a55';ctx.fillText('raceiq.app · Race Smarter.',72,985);
+  ctx.fillStyle='#c8f03a';ctx.fillText('#Hyrox #RaceIQ',800,985);
+  const a=document.createElement('a');a.download=`raceiq-${(race.city||'result').replace(/\s/g,'-').toLowerCase()}.png`;a.href=canvas.toDataURL('image/png');a.click();
+  closeModal('shareModal');notify('Result card downloaded! 📸','var(--green)');
+}
+function drawCard(race){
+  const canvas=document.getElementById('card-preview');if(!canvas) return;
+  race=race||APP.races[0]||{city:'Your Race',time:'72:30',cat:'Open',date:'',splits:[]};
+  const ctx=canvas.getContext('2d');const w=300,h=300;
+  ctx.fillStyle='#07070a';ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='rgba(200,240,58,0.04)';ctx.lineWidth=1;
+  for(let x=0;x<w;x+=15){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+  for(let y=0;y<h;y+=15){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  ctx.fillStyle='#c8f03a';ctx.fillRect(0,0,w,3);
+  ctx.font='bold 18px Arial';ctx.fillStyle='#c8f03a';ctx.fillText('RACEIQ',20,36);
+  ctx.fillStyle='#1c1c22';ctx.fillRect(20,44,260,1);
+  ctx.font='bold 22px Arial';ctx.fillStyle='#e6e6f0';ctx.fillText((race.city||'MY RACE').toUpperCase().slice(0,14),20,76);
+  ctx.font='bold 64px Arial';ctx.fillStyle='#c8f03a';ctx.fillText(race.time||'--:--',20,158);
+  ctx.font='12px monospace';ctx.fillStyle='#4a4a55';ctx.fillText(race.cat||'OPEN',20,180);
+  if(race.splits&&race.splits.length){
+    const cX=20,cY=195,cW=260,cH=60,max=Math.max(...race.splits);
+    const bW=Math.floor(cW/race.splits.length)-2;
+    race.splits.forEach((t,i)=>{const bH=Math.round((t/max)*cH),x=cX+i*(bW+2),y=cY+cH-bH;ctx.fillStyle=i%2===0?'rgba(77,158,255,0.7)':'rgba(200,240,58,0.7)';ctx.fillRect(x,y,bW,bH);});
+  }
+  ctx.fillStyle='#1c1c22';ctx.fillRect(0,272,w,1);
+  ctx.font='10px monospace';ctx.fillStyle='#4a4a55';ctx.fillText('raceiq.app',20,288);
+  ctx.fillStyle='#c8f03a';ctx.fillText('#Hyrox',240,288);
+}
+
+// ================================================================
+//  PRICING
+// ================================================================
+function renderPricing(){
+  // FAQ
+  const faqs=[
+    {q:'Can I cancel anytime?',a:'Yes — cancel from your profile with one click. No questions. You keep Pro until end of billing period, then drop to Free. Your data stays forever.'},
+    {q:'Is the Free plan really free forever?',a:'<strong>Yes, genuinely.</strong> No card, no timer. The only limit is 3 saved races. The race planner is unlimited on every plan.'},
+    {q:'What is the 7-day free trial?',a:'Start Pro with your card — if you cancel before day 7 you are not charged. After day 7 it becomes a monthly or annual subscription.'},
+    {q:'How does annual billing work?',a:'Annual Pro is £39.99 billed once per year — £3.33/month effective. Cancel anytime for a prorated refund on unused months.'},
+    {q:'What counts as a Gym subscription?',a:'Any Hyrox-affiliated gym, CrossFit box, or PT studio that trains Hyrox athletes. Email hello@raceiq.app to set up. <strong>Unlimited members</strong> at £29/month flat.'},
+    {q:'Do gym members pay separately?',a:'No. Members joining via your gym link get full Pro automatically. One flat £29/month covers everyone, regardless of headcount.'},
+    {q:'Which devices does Pro unlock?',a:'Garmin Connect, Strava, Whoop (once approved), Polar, Fitbit, Samsung Health, Coros. Apple Watch requires a native iOS app — coming in a future update.'},
+    {q:'Is there a student or athlete discount?',a:'Yes — 50% off Pro for verified Hyrox coaches and first-time competitors. Email hello@raceiq.app with proof.'},
+  ];
+  const faqEl=document.getElementById('pricing-faq');
+  if(faqEl) faqEl.innerHTML=faqs.map((f,i)=>`<div class="faq-item" id="pfaq-${i}"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">${f.q}<span class="faq-icon">+</span></div><div class="faq-a">${f.a}</div></div>`).join('');
+}
+function handleFreeCta(){if(!APP.user){nav('account');}else{notify('You are already on the Free plan');}}
+function handleProCta(){if(isPro()){notify('You already have Pro! ⚡','var(--green)');}else{activatePro();}}
+function toggleBilling(){
+  APP.isAnnual=!APP.isAnnual;
+  const t=document.getElementById('bill-toggle'),sp=document.getElementById('save-pill');
+  const blm=document.getElementById('bl-monthly'),bla=document.getElementById('bl-annual');
+  t?.classList.toggle('on',APP.isAnnual);
+  sp?.classList.toggle('on',APP.isAnnual);
+  blm?.classList.toggle('on',!APP.isAnnual);
+  bla?.classList.toggle('on',APP.isAnnual);
+  const pp=document.getElementById('pro-price'),ps=document.getElementById('pro-sub'),pn=document.getElementById('pro-note');
+  const gp=document.getElementById('gym-price'),gs=document.getElementById('gym-sub'),gn=document.getElementById('gym-note');
+  if(APP.isAnnual){
+    if(pp) pp.textContent='39.99';if(ps) ps.textContent='/year';if(pn) pn.textContent='= £3.33/mo · Save £19.89';
+    if(gp) gp.textContent='249';if(gs) gs.textContent='/year';if(gn) gn.textContent='= £20.75/mo · Save £99';
+  }else{
+    if(pp) pp.textContent='4.99';if(ps) ps.textContent='/month';if(pn) pn.textContent='';
+    if(gp) gp.textContent='29';if(gs) gs.textContent='/month';if(gn) gn.textContent='';
+  }
+}
+
+// ================================================================
+//  ACCOUNT
+// ================================================================
+const ACHIEVS=[
+  {id:'first',name:'First Race',icon:'🎖️'},{id:'sub90',name:'Sub 90',icon:'⏱️'},{id:'sub75',name:'Sub 75',icon:'🔥'},
+  {id:'sub60',name:'Sub 60',icon:'⚡'},{id:'5races',name:'5 Races',icon:'🏅'},{id:'connect',name:'Connected',icon:'⌚'},
+  {id:'community',name:'Community',icon:'💬'},{id:'planner',name:'Strategist',icon:'🎯'},
+];
+function getUnlocked(){
+  const u=[];
+  if(APP.races.length>0) u.push('first','planner');
+  if(APP.races.some(r=>parseT(r.time)<90)) u.push('sub90');
+  if(APP.races.some(r=>parseT(r.time)<75)) u.push('sub75');
+  if(APP.races.some(r=>parseT(r.time)<60)) u.push('sub60');
+  if(APP.races.length>=5) u.push('5races');
+  if(Object.keys(APP.devices).length>0) u.push('connect');
+  if(APP.posts.length>0) u.push('community');
+  return u;
+}
+function renderAccount(){
+  const el=document.getElementById('account-content');if(!el) return;
+  if(!APP.user){
+    el.innerHTML=`<div class="auth-wrap"><div class="auth-card">
+      <div class="auth-logo">RACEIQ</div>
+      <div class="auth-sub">Create an account to track progress, connect devices, and join the community.</div>
+      <div class="tabs"><button class="tab active" onclick="swTab(this,'au-signup')">Sign Up</button><button class="tab" onclick="swTab(this,'au-login')">Sign In</button></div>
+      <div class="tab-body active" id="au-signup">
+        <div class="fg mb16"><label>Full Name</label><input type="text" id="au-name" placeholder="Alex Turner"></div>
+        <div class="fg mb16"><label>Email</label><input type="email" id="au-email" placeholder="you@email.com"></div>
+        <div class="fg mb16"><label>City</label><input type="text" id="au-city" placeholder="London"></div>
+        <div class="fg mb16"><label>Password</label><input type="password" id="au-pass" placeholder="••••••••"></div>
+        <div class="fg mb16"><label>Category</label><select id="au-cat"><option>Open</option><option>Pro</option><option>Doubles</option></select></div>
+        <button class="btn btn-acid" style="width:100%;padding:12px;font-family:var(--fd);font-size:18px;letter-spacing:2px" onclick="signUp()">CREATE ACCOUNT</button>
+        <div style="font-family:var(--fm);font-size:9px;color:var(--muted);text-align:center;margin-top:10px;letter-spacing:.5px">Data stored locally. No external server in this demo.</div>
+      </div>
+      <div class="tab-body" id="au-login">
+        <div class="fg mb16"><label>Email</label><input type="email" id="li-email" placeholder="you@email.com"></div>
+        <div class="fg mb16"><label>Password</label><input type="password" id="li-pass" placeholder="••••••••"></div>
+        <button class="btn btn-acid" style="width:100%;padding:12px;font-family:var(--fd);font-size:18px;letter-spacing:2px" onclick="signIn()">SIGN IN</button>
+      </div>
+    </div></div>`;
+    return;
+  }
+  const u=APP.user;const unlocked=getUnlocked();
+  const best=APP.races.length?Math.min(...APP.races.map(r=>parseT(r.time))):null;
+  const goals=APP.goals||{targetTime:'60',nextRace:'',weeklyRuns:'3'};
+  document.getElementById('topbar-user-btn').textContent=u.name.split(' ')[0];
+  updateTierUI();
+  el.innerHTML=`
+    <div class="profile-hero">
+      <div style="position:relative">
+        <div class="prof-av" style="background:${u.color||'var(--mid)'}">${u.name.split(' ').map(x=>x[0]).join('')}<div class="prof-level">${APP.tier.toUpperCase()}</div></div>
+      </div>
+      <div>
+        <div class="prof-name">${u.name.toUpperCase()}</div>
+        <div class="prof-handle">@${u.name.toLowerCase().replace(/\s+/g,'_')} · ${u.city||'Earth'}</div>
+        <div class="prof-bio">${u.bio||'Hyrox athlete. Building race IQ one split at a time.'}</div>
+        <div class="prof-stats">
+          <div class="ps-item"><div class="ps-num">${APP.races.length}</div><div class="ps-lbl">Races</div></div>
+          <div class="ps-item"><div class="ps-num">${best?fmt(best):'—'}</div><div class="ps-lbl">Best Time</div></div>
+          <div class="ps-item"><div class="ps-num">${Object.keys(APP.devices).length}</div><div class="ps-lbl">Devices</div></div>
+          <div class="ps-item"><div class="ps-num">${unlocked.length}</div><div class="ps-lbl">Achievements</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${!isPro()?`<button class="btn btn-pro btn-sm" onclick="nav('pricing')">⚡ UPGRADE TO PRO</button>`:`<div style="background:rgba(200,240,58,.08);border:1px solid rgba(200,240,58,.2);padding:8px 12px;border-radius:var(--r);font-family:var(--fd);font-size:16px;letter-spacing:2px;color:var(--acid);text-align:center">PRO ACTIVE ⚡</div>`}
+        <button class="btn btn-outline btn-sm" onclick="editProfileMode()">EDIT PROFILE</button>
+        <button class="btn btn-danger btn-sm" onclick="signOut()">SIGN OUT</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="swTab(this,'acc-goals')">Goals</button>
+      <button class="tab" onclick="swTab(this,'acc-achievements')">Achievements</button>
+      <button class="tab" onclick="swTab(this,'acc-settings')">Settings</button>
+    </div>
+    <div class="tab-body active" id="acc-goals">
+      <div class="g3 mb16">
+        <div class="goal-card"><div style="font-size:12px;font-weight:600;margin-bottom:5px">Target Finish</div><div class="goal-target">${goals.targetTime} min</div><div style="font-family:var(--fm);font-size:8px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Race Goal</div>${best?`<div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:${Math.min(100,Math.round(parseInt(goals.targetTime)/best*100))}%"></div></div><div style="font-family:var(--fm);font-size:9px;color:var(--dim);text-align:right">${Math.min(100,Math.round(parseInt(goals.targetTime)/best*100))}% there</div>`:'<div style="font-family:var(--fm);font-size:9px;color:var(--muted)">Log a race to track progress</div>'}</div>
+        <div class="goal-card"><div style="font-size:12px;font-weight:600;margin-bottom:5px">Weekly Runs</div><div class="goal-target">${goals.weeklyRuns}</div><div style="font-family:var(--fm);font-size:8px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Runs / Week Target</div><div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:${Object.keys(APP.devices).length>0?70:35}%"></div></div><div style="font-family:var(--fm);font-size:9px;color:var(--dim);text-align:right">${Object.keys(APP.devices).length>0?'Synced from device':'Connect a device'}</div></div>
+        <div class="goal-card"><div style="font-size:12px;font-weight:600;margin-bottom:5px">Races This Year</div><div class="goal-target">${APP.races.length}</div><div style="font-family:var(--fm);font-size:8px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Completed</div><div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:${Math.min(100,APP.races.length/3*100)}%"></div></div><div style="font-family:var(--fm);font-size:9px;color:var(--dim);text-align:right">Target: 3 races</div></div>
+      </div>
+      <div class="panel"><div class="p-title">Update Goals</div>
+        <div class="form-row fr3">
+          <div class="fg"><label>Target (mins)</label><input type="number" id="g-time" value="${goals.targetTime}" min="50" max="130"></div>
+          <div class="fg"><label>Next Event</label><input type="text" id="g-event" value="${goals.nextRace}" placeholder="HYROX London"></div>
+          <div class="fg"><label>Weekly Runs</label><input type="number" id="g-runs" value="${goals.weeklyRuns}" min="1" max="14"></div>
+        </div>
+        <button class="btn btn-acid btn-sm" onclick="saveGoals()">SAVE GOALS</button>
+      </div>
+    </div>
+    <div class="tab-body" id="acc-achievements">
+      <div class="ach-grid">${ACHIEVS.map(a=>`<div class="ach-card ${unlocked.includes(a.id)?'':'locked'}" title="${a.name}"><div class="ach-emoji">${a.icon}</div><div class="ach-name">${a.name}</div></div>`).join('')}</div>
+      <div style="font-family:var(--fm);font-size:9px;color:var(--muted);text-align:center;margin-top:12px;letter-spacing:1px">${unlocked.length} / ${ACHIEVS.length} UNLOCKED</div>
+    </div>
+    <div class="tab-body" id="acc-settings">
+      <div class="panel"><div class="p-title">Profile Settings</div>
+        <div class="form-row fr2"><div class="fg"><label>Name</label><input type="text" id="s-name" value="${u.name}"></div><div class="fg"><label>City</label><input type="text" id="s-city" value="${u.city||''}"></div></div>
+        <div class="form-row"><div class="fg"><label>Bio</label><textarea id="s-bio">${u.bio||''}</textarea></div></div>
+        <div class="form-row fr2"><div class="fg"><label>Category</label><select id="s-cat"><option ${u.cat==='Open'?'selected':''}>Open</option><option ${u.cat==='Pro'?'selected':''}>Pro</option><option ${u.cat==='Doubles'?'selected':''}>Doubles</option></select></div><div class="fg"><label>Colour</label><input type="color" id="s-color" value="${u.color||'#2a2a2a'}" style="height:40px;padding:4px 8px;cursor:pointer"></div></div>
+        <div class="flex gap-8 mt16">
+          <button class="btn btn-acid" onclick="updateProfile()">SAVE CHANGES</button>
+          ${isPro()?`<button class="btn btn-danger" onclick="if(confirm('Downgrade to Free?')){APP.tier='free';localStorage.setItem('riq-tier','free');updateTierUI();renderAccount();notify('Downgraded to Free');}">CANCEL PRO</button>`:`<button class="btn btn-pro" onclick="nav('pricing')">⚡ UPGRADE TO PRO</button>`}
+        </div>
+      </div>
+    </div>`;
+}
+function signUp(){
+  const name=document.getElementById('au-name')?.value.trim();
+  const email=document.getElementById('au-email')?.value.trim();
+  if(!name||!email){notify('Name and email required','var(--red)');return;}
+  const colors=['#1e2e1e','#1e1e2e','#2e1e1e','#2e2e1e','#1e2e2e'];
+  APP.user={name,email,city:document.getElementById('au-city')?.value,cat:document.getElementById('au-cat')?.value,bio:'',color:colors[Math.floor(Math.random()*colors.length)]};
+  save('user',APP.user);
+  // Track signup for owner dashboard
+  const signups=JSON.parse(localStorage.getItem('riq-owner-signups')||'[]');
+  signups.push({date:new Date().toISOString(),name,email,tier:APP.tier});
+  localStorage.setItem('riq-owner-signups',JSON.stringify(signups));
+  renderAccount();updateTierUI();notify(`Welcome to RaceIQ, ${name.split(' ')[0]}! 🏁`);
+}
+function signIn(){
+  const email=document.getElementById('li-email')?.value.trim();
+  const stored=JSON.parse(localStorage.getItem('riq-user')||'null');
+  if(stored&&stored.email===email){APP.user=stored;renderAccount();updateTierUI();notify(`Welcome back, ${APP.user.name.split(' ')[0]}! 👋`);}
+  else notify('No account found. Try signing up.','var(--orange)');
+}
+function signOut(){APP.user=null;save('user',null);document.getElementById('topbar-user-btn').textContent='Sign In';document.getElementById('topbar-user-btn').className='topbar-user-btn';renderAccount();notify('Signed out');}
+function updateProfile(){APP.user.name=document.getElementById('s-name')?.value;APP.user.city=document.getElementById('s-city')?.value;APP.user.bio=document.getElementById('s-bio')?.value;APP.user.cat=document.getElementById('s-cat')?.value;APP.user.color=document.getElementById('s-color')?.value;save('user',APP.user);document.getElementById('topbar-user-btn').textContent=APP.user.name.split(' ')[0];renderAccount();notify('Profile updated ✅','var(--green)');}
+function editProfileMode(){const tabs=document.querySelector('#acc-settings')?.closest('.page');swTab(document.querySelector('[onclick*="acc-settings"]'),'acc-settings');}
+function saveGoals(){APP.goals={targetTime:document.getElementById('g-time')?.value,nextRace:document.getElementById('g-event')?.value,weeklyRuns:document.getElementById('g-runs')?.value};save('goals',APP.goals);renderAccount();notify('Goals saved! 🎯','var(--green)');}
+
+// ================================================================
+//  DASHBOARD
+// ================================================================
+function renderDash(){
+  const dRaces=document.getElementById('d-races');if(dRaces) dRaces.textContent=APP.races.length||'0';
+  const best=APP.races.length?Math.min(...APP.races.filter(r=>parseT(r.time)>0).map(r=>parseT(r.time))):null;
+  const dPR=document.getElementById('d-pr');if(dPR) dPR.textContent=best?fmt(best):'—';
+  const dDevs=document.getElementById('d-devs');if(dDevs) dDevs.textContent=Object.keys(APP.devices).length;
+  const nextEvt=EVENTS.find(e=>new Date(e.date)>new Date());
+  const dNext=document.getElementById('d-next');if(dNext) dNext.textContent=nextEvt?nextEvt.city:'—';
+  const rec=document.getElementById('dash-recent');
+  if(rec){if(!APP.races.length){rec.innerHTML='<div class="empty">No races yet</div>';}else{rec.innerHTML=APP.races.slice(0,3).map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px;font-weight:500">${r.city}</div><div style="font-family:var(--fm);font-size:9px;color:var(--muted)">${r.date}</div></div><div style="font-family:var(--fd);font-size:22px;color:var(--acid)">${r.time}</div></div>`).join('');}}
+  const comm=document.getElementById('dash-comm');
+  if(comm) comm.innerHTML=[...APP.posts,...SEED].slice(0,3).map(p=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:500">${p.author} <span style="font-family:var(--fm);font-size:8px;color:var(--muted)">${p.time}</span></div><div style="font-size:12px;color:var(--dim);margin-top:3px;line-height:1.5">${p.text.slice(0,80)}…</div></div>`).join('');
+  const dashUpgrade=document.getElementById('dash-upgrade-btn');if(dashUpgrade) dashUpgrade.style.display=isPro()?'none':'inline-flex';
+}
+
+// ================================================================
+//  BADGES
+// ================================================================
+function updateBadges(){
+  const n=Object.keys(APP.devices).length;
+  ['sb-dev-badge','di-dev-badge'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=n;});
+  const dDevs=document.getElementById('d-devs');if(dDevs) dDevs.textContent=n;
+}
+
+// ================================================================
+//  INIT
+// ================================================================
+calcPlan();
+renderDash();
+renderLog();
+updateTierUI();
+</script>
+</body>
+</html>
