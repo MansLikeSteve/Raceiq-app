@@ -1,0 +1,2482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Station8.AI — Hyrox Race Strategy</title>
+<!-- SUPABASE AUTH — replace YOUR_SUPABASE_URL and YOUR_SUPABASE_ANON_KEY below -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black: #070709;
+  --void: #0c0c0f;
+  --panel: #101014;
+  --panel2: #141418;
+  --border: #1c1c22;
+  --mid: #28282f;
+  --muted: #4a4a55;
+  --dim: #7a7a88;
+  --text: #e6e6f0;
+  --acid: #c8f03a;
+  --acid2: #a8d020;
+  --orange: #ff6b35;
+  --red: #ff3d3d;
+  --green: #2feda0;
+  --blue: #4d9eff;
+  --purple: #9b6dff;
+  --font-d: 'Bebas Neue', sans-serif;
+  --font-m: 'DM Mono', monospace;
+  --font-b: 'DM Sans', sans-serif;
+  --r: 3px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--text);font-family:var(--font-b);min-height:100vh;overflow-x:hidden}
+
+/* NOISE */
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:9998;opacity:.5}
+
+/* ===== LAYOUT ===== */
+.app-shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+
+/* ===== SIDEBAR ===== */
+.sidebar{background:var(--void);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
+.logo-mark{font-family:var(--font-d);font-size:30px;letter-spacing:3px;color:var(--acid);line-height:1}
+.logo-sub{font-family:var(--font-m);font-size:9px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.sidebar-nav{flex:1;padding:16px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r);cursor:pointer;transition:all .15s;border:1px solid transparent;font-size:13px;color:var(--dim);font-weight:500;text-decoration:none;background:none;border:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--panel);color:var(--text)}
+.nav-item.active{background:rgba(200,240,58,.07);color:var(--acid);border:1px solid rgba(200,240,58,.15)}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.nav-label{font-family:var(--font-m);font-size:11px;letter-spacing:1px;text-transform:uppercase}
+.nav-badge{margin-left:auto;background:var(--acid);color:var(--black);font-family:var(--font-m);font-size:9px;padding:2px 6px;border-radius:10px;font-weight:600}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.data-notice{background:rgba(77,158,255,.06);border:1px solid rgba(77,158,255,.15);padding:10px 12px;border-radius:var(--r)}
+.data-notice-title{font-family:var(--font-m);font-size:9px;letter-spacing:2px;color:var(--blue);text-transform:uppercase;margin-bottom:4px}
+.data-notice-text{font-size:10px;color:var(--muted);line-height:1.5}
+
+/* ===== MAIN ===== */
+.main-content{overflow-x:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-bottom:1px solid var(--border);background:rgba(7,7,9,.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.topbar-title{font-family:var(--font-d);font-size:24px;letter-spacing:2px;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.live-badge{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--border);padding:6px 12px;border-radius:20px;font-family:var(--font-m);font-size:10px;color:var(--dim);letter-spacing:1px}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--red);animation:pulse 2s infinite}
+.pulse.green{background:var(--green)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+.page{display:none;padding:28px 32px 80px;animation:fadeIn .3s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== SECTION HEADER ===== */
+.sec-hdr{display:flex;align-items:baseline;gap:14px;margin-bottom:28px}
+.sec-title{font-family:var(--font-d);font-size:38px;letter-spacing:2px}
+.sec-tag{font-family:var(--font-m);font-size:9px;letter-spacing:3px;color:var(--acid);border:1px solid rgba(200,240,58,.25);padding:3px 8px;border-radius:2px;text-transform:uppercase}
+.sec-sub{font-size:13px;color:var(--dim);margin-top:4px}
+
+/* ===== PANELS ===== */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:24px}
+.panel-sm{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px}
+.p-title{font-family:var(--font-m);font-size:10px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* ===== BUTTONS ===== */
+.btn{font-family:var(--font-m);font-size:11px;letter-spacing:2px;text-transform:uppercase;border:none;padding:10px 20px;cursor:pointer;transition:all .15s;border-radius:var(--r)}
+.btn-acid{background:var(--acid);color:var(--black);font-weight:600}
+.btn-acid:hover{background:#d8ff40;transform:translateY(-1px)}
+.btn-outline{background:none;color:var(--text);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--acid);color:var(--acid)}
+.btn-ghost{background:var(--panel2);color:var(--dim);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--mid)}
+.btn-sm{padding:7px 14px;font-size:10px}
+.btn-danger{background:rgba(255,61,61,.1);color:var(--red);border:1px solid rgba(255,61,61,.2)}
+.btn-danger:hover{background:rgba(255,61,61,.2)}
+
+/* ===== FORMS ===== */
+.form-row{display:grid;gap:16px;margin-bottom:16px}
+.form-row-2{grid-template-columns:1fr 1fr}
+.form-row-3{grid-template-columns:1fr 1fr 1fr}
+.fgroup{display:flex;flex-direction:column;gap:7px}
+label{font-family:var(--font-m);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+input[type=text],input[type=email],input[type=password],input[type=number],input[type=date],textarea,select{width:100%;background:var(--void);border:1px solid var(--border);color:var(--text);font-family:var(--font-m);font-size:13px;padding:10px 14px;outline:none;border-radius:var(--r);transition:border-color .2s;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--acid)}
+textarea{resize:vertical;min-height:80px;font-family:var(--font-b);font-size:13px;line-height:1.6}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M5 7L0 0h10z' fill='%234a4a55'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer}
+select option{background:var(--panel)}
+input[type=range]{width:100%;-webkit-appearance:none;height:3px;background:var(--mid);outline:none;cursor:pointer;border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--acid);cursor:pointer;border-radius:0;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%)}
+
+/* ===== STATS ===== */
+.stat-card{background:var(--panel);border:1px solid var(--border);padding:22px;border-radius:var(--r);position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.acid::before{background:var(--acid)}
+.stat-card.blue::before{background:var(--blue)}
+.stat-card.orange::before{background:var(--orange)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.purple::before{background:var(--purple)}
+.stat-num{font-family:var(--font-d);font-size:44px;letter-spacing:1px;line-height:1}
+.stat-label{font-family:var(--font-m);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-top:5px}
+.stat-delta{font-family:var(--font-m);font-size:10px;color:var(--green);margin-top:4px}
+.stat-delta.neg{color:var(--red)}
+
+/* ===== TABS ===== */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:24px;gap:0}
+.tab{font-family:var(--font-m);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;padding:12px 18px;cursor:pointer;transition:all .2s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--acid);border-bottom-color:var(--acid)}
+.tab-body{display:none}
+.tab-body.active{display:block;animation:fadeIn .2s ease}
+
+/* ===== NOTIF / MODAL ===== */
+.notif{position:fixed;bottom:28px;right:28px;background:var(--panel);border:1px solid var(--acid);color:var(--acid);font-family:var(--font-m);font-size:11px;letter-spacing:1px;padding:12px 18px;z-index:10000;border-radius:var(--r);transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px}
+.notif.show{transform:translateY(0);opacity:1}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:5000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);width:90%;max-width:520px;max-height:90vh;overflow-y:auto;border-radius:var(--r);padding:32px}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.modal-title{font-family:var(--font-d);font-size:28px;letter-spacing:2px}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:var(--r)}
+.modal-close:hover{color:var(--text);background:var(--panel2)}
+
+/* ===== DATA SOURCE BANNER ===== */
+.data-banner{background:rgba(77,158,255,.05);border:1px solid rgba(77,158,255,.2);padding:12px 18px;border-radius:var(--r);margin-bottom:22px;display:flex;align-items:flex-start;gap:12px}
+.data-banner-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.data-banner p{font-size:12px;color:var(--dim);line-height:1.6}
+.data-banner strong{color:var(--blue)}
+
+/* ===== DEVICE CONNECT ===== */
+.device-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.device-card{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.device-card:hover{border-color:var(--mid);transform:translateY(-2px)}
+.device-card.connected{border-color:rgba(47,237,160,.3);background:rgba(47,237,160,.04)}
+.device-icon{font-size:36px;margin-bottom:10px}
+.device-name{font-size:13px;font-weight:600;margin-bottom:4px}
+.device-type{font-family:var(--font-m);font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
+.device-status{position:absolute;top:10px;right:10px;font-size:16px}
+.device-last-sync{font-family:var(--font-m);font-size:9px;color:var(--green);margin-top:8px;display:none}
+.device-card.connected .device-last-sync{display:block}
+.connect-btn{margin-top:12px;width:100%}
+
+/* ===== EVENTS ===== */
+.events-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:22px}
+.search-box{display:flex;align-items:center;background:var(--void);border:1px solid var(--border);border-radius:var(--r);padding:0 12px;gap:8px;flex:1;max-width:320px}
+.search-box input{background:none;border:none;padding:9px 0;flex:1;font-size:13px;color:var(--text);outline:none;font-family:var(--font-b)}
+.search-box:focus-within{border-color:var(--acid)}
+.search-icon{color:var(--muted);font-size:14px}
+.filter-select{background:var(--void);border:1px solid var(--border);color:var(--text);font-family:var(--font-m);font-size:10px;letter-spacing:1px;padding:9px 28px 9px 12px;border-radius:var(--r);cursor:pointer;outline:none;text-transform:uppercase;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M5 7L0 0h10z' fill='%234a4a55'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;-webkit-appearance:none}
+.event-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:grid;grid-template-columns:70px 1fr auto;gap:18px;align-items:center;transition:border-color .2s,transform .15s;cursor:pointer}
+.event-card:hover{border-color:rgba(200,240,58,.3);transform:translateX(2px)}
+.event-date-box{background:var(--void);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center}
+.event-day{font-family:var(--font-d);font-size:28px;color:var(--acid);line-height:1}
+.event-month{font-family:var(--font-m);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+.event-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.event-location{font-family:var(--font-m);font-size:11px;color:var(--dim);letter-spacing:.5px;margin-bottom:8px}
+.event-tags{display:flex;gap:6px;flex-wrap:wrap}
+.etag{font-family:var(--font-m);font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:2px;text-transform:uppercase}
+.etag-open{background:rgba(200,240,58,.1);color:var(--acid);border:1px solid rgba(200,240,58,.2)}
+.etag-pro{background:rgba(255,107,53,.1);color:var(--orange);border:1px solid rgba(255,107,53,.2)}
+.etag-doubles{background:rgba(155,109,255,.1);color:var(--purple);border:1px solid rgba(155,109,255,.2)}
+.etag-sold{background:rgba(255,61,61,.1);color:var(--red);border:1px solid rgba(255,61,61,.2)}
+.event-action{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.event-dist{font-family:var(--font-m);font-size:11px;color:var(--green);text-align:right;margin-top:4px}
+.event-list{display:flex;flex-direction:column;gap:10px}
+.no-events{text-align:center;padding:60px 20px;color:var(--muted);font-family:var(--font-m);font-size:12px;letter-spacing:2px;border:1px dashed var(--border);border-radius:var(--r)}
+
+/* ===== COMMUNITY ===== */
+.community-grid{display:grid;grid-template-columns:1fr 340px;gap:22px;align-items:start}
+.post-composer{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:20px}
+.composer-top{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--mid);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;border:2px solid var(--border)}
+.avatar.lg{width:54px;height:54px;font-size:20px}
+.composer-input{flex:1;background:var(--void);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;color:var(--text);font-family:var(--font-b);font-size:13px;resize:none;outline:none;min-height:70px;line-height:1.6;transition:border-color .2s}
+.composer-input:focus{border-color:var(--acid)}
+.composer-btns{display:flex;align-items:center;gap:10px}
+.attach-btn{background:none;border:1px solid var(--border);color:var(--dim);font-size:14px;padding:7px 12px;cursor:pointer;border-radius:var(--r);transition:all .2s}
+.attach-btn:hover{color:var(--text);border-color:var(--mid)}
+.post-type-select{background:var(--void);border:1px solid var(--border);color:var(--dim);font-family:var(--font-m);font-size:10px;padding:7px 12px;cursor:pointer;border-radius:var(--r);outline:none;letter-spacing:1px}
+.feed{display:flex;flex-direction:column;gap:14px}
+.post-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .2s}
+.post-card:hover{border-color:var(--mid)}
+.post-hdr{display:flex;align-items:center;gap:12px;padding:16px 18px 0}
+.post-meta{flex:1}
+.post-author{font-size:14px;font-weight:600}
+.post-time{font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:.5px}
+.post-type-badge{font-family:var(--font-m);font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:2px;text-transform:uppercase;margin-left:auto}
+.post-body{padding:12px 18px 16px}
+.post-text{font-size:14px;line-height:1.7;color:var(--text)}
+.post-achievement{background:var(--void);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-top:12px;display:flex;align-items:center;gap:14px}
+.ach-icon{font-size:28px}
+.ach-time{font-family:var(--font-d);font-size:34px;color:var(--acid);letter-spacing:2px;line-height:1}
+.ach-event{font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+.post-splits-mini{display:flex;gap:3px;margin-top:12px;height:30px}
+.psm-bar{flex:1;background:var(--void);border-radius:1px;position:relative;overflow:hidden}
+.psm-fill{position:absolute;bottom:0;left:0;right:0}
+.post-footer{padding:10px 18px;border-top:1px solid var(--border);display:flex;gap:16px;align-items:center}
+.react-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:var(--r);transition:all .2s;font-family:var(--font-b)}
+.react-btn:hover{background:var(--panel2);color:var(--text)}
+.react-btn.liked{color:var(--acid)}
+.sidebar-widget{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.widget-title{font-family:var(--font-m);font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+.trending-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:all .2s}
+.trending-item:last-child{border-bottom:none}
+.trending-item:hover .trending-tag{color:var(--acid)}
+.trending-rank{font-family:var(--font-d);font-size:22px;color:var(--border);width:28px}
+.trending-tag{font-size:13px;font-weight:600}
+.trending-count{font-family:var(--font-m);font-size:10px;color:var(--muted);margin-left:auto}
+.active-user{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.active-user:last-child{border-bottom:none}
+.au-info{flex:1}
+.au-name{font-size:13px;font-weight:500}
+.au-stat{font-family:var(--font-m);font-size:10px;color:var(--muted)}
+.follow-btn{font-family:var(--font-m);font-size:9px;letter-spacing:1px;background:none;border:1px solid var(--border);color:var(--dim);padding:4px 10px;cursor:pointer;border-radius:var(--r);text-transform:uppercase;transition:all .2s}
+.follow-btn:hover{border-color:var(--acid);color:var(--acid)}
+.follow-btn.following{background:rgba(200,240,58,.1);border-color:rgba(200,240,58,.2);color:var(--acid)}
+
+/* ===== ACCOUNT / PROFILE ===== */
+.profile-hero{background:linear-gradient(135deg,rgba(200,240,58,.08) 0%,transparent 60%);border:1px solid var(--border);border-radius:var(--r);padding:32px;margin-bottom:22px;display:grid;grid-template-columns:auto 1fr auto;gap:28px;align-items:center}
+.profile-avatar-wrap{position:relative}
+.profile-avatar{width:84px;height:84px;border-radius:50%;background:var(--mid);border:3px solid var(--acid);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700}
+.profile-level{position:absolute;bottom:-4px;right:-4px;background:var(--acid);color:var(--black);font-family:var(--font-m);font-size:9px;letter-spacing:1px;padding:2px 7px;border-radius:10px;font-weight:600}
+.profile-name{font-family:var(--font-d);font-size:40px;letter-spacing:2px;line-height:1}
+.profile-handle{font-family:var(--font-m);font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:4px}
+.profile-bio{font-size:13px;color:var(--dim);margin-top:8px;line-height:1.6}
+.profile-stats{display:flex;gap:24px;margin-top:14px}
+.ps-item{text-align:center}
+.ps-num{font-family:var(--font-d);font-size:28px;color:var(--acid);letter-spacing:1px}
+.ps-label{font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.goal-card{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);padding:18px;position:relative;overflow:hidden}
+.goal-title{font-size:13px;font-weight:600;margin-bottom:6px}
+.goal-target{font-family:var(--font-d);font-size:30px;color:var(--acid);letter-spacing:1px}
+.goal-sub{font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
+.goal-bar-wrap{background:var(--mid);height:4px;border-radius:2px;overflow:hidden;margin-bottom:6px}
+.goal-bar-fill{height:100%;background:var(--acid);border-radius:2px;transition:width .6s ease}
+.goal-pct{font-family:var(--font-m);font-size:10px;color:var(--dim);text-align:right}
+.achievement-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+.ach-card{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center;transition:all .2s}
+.ach-card:hover{border-color:var(--mid);transform:translateY(-2px)}
+.ach-card.locked{opacity:.35;filter:grayscale(1)}
+.ach-emoji{font-size:28px;margin-bottom:8px}
+.ach-name{font-family:var(--font-m);font-size:9px;letter-spacing:1px;color:var(--dim);text-transform:uppercase;line-height:1.4}
+
+/* ===== PLANNER (reused from v1) ===== */
+.planner-grid{display:grid;grid-template-columns:300px 1fr;gap:20px}
+.station-row{display:grid;grid-template-columns:28px 1fr 72px 90px;align-items:center;gap:10px;background:var(--void);border:1px solid var(--border);padding:12px 16px;transition:border-color .2s;border-radius:var(--r);margin-bottom:6px}
+.station-row:hover{border-color:rgba(200,240,58,.25)}
+.stn-num{font-family:var(--font-d);font-size:20px;color:var(--muted)}
+.stn-name{font-size:13px;font-weight:500}
+.stn-type{font-family:var(--font-m);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.stn-time{font-family:var(--font-d);font-size:22px;letter-spacing:1px;text-align:right}
+.stn-time.run{color:var(--blue)}
+.stn-time.work{color:var(--acid)}
+.stn-effort{text-align:right;font-family:var(--font-m);font-size:10px}
+.effort-bar-wrap{height:3px;background:var(--mid);border-radius:2px;overflow:hidden;margin-top:2px}
+.effort-bar-fill{height:100%;transition:width .5s ease}
+.totals-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);margin-top:16px;border-radius:var(--r);overflow:hidden}
+.total-cell{background:var(--panel);padding:16px;text-align:center}
+.total-n{font-family:var(--font-d);font-size:34px;letter-spacing:2px}
+.total-l{font-family:var(--font-m);font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:3px;letter-spacing:2px}
+.ai-coach-box{background:rgba(200,240,58,.03);border:1px solid rgba(200,240,58,.15);border-radius:var(--r);padding:20px;margin-top:16px;position:relative}
+.ai-coach-box::before{content:'⚡ AI COACH';position:absolute;top:-10px;left:16px;font-family:var(--font-m);font-size:9px;letter-spacing:3px;background:var(--panel);color:var(--acid);padding:2px 10px}
+.ai-tip{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.ai-tip:last-child{border-bottom:none}
+.ai-tip-icon{font-size:18px;width:24px;flex-shrink:0}
+.ai-tip-text{font-size:12px;color:var(--dim);line-height:1.6}
+.ai-tip-text strong{color:var(--text);font-weight:500}
+.ai-dots span{display:inline-block;width:5px;height:5px;background:var(--acid);border-radius:50%;margin:0 2px;animation:blink 1.2s infinite}
+.ai-dots span:nth-child(2){animation-delay:.2s}
+.ai-dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.range-val{font-family:var(--font-d);font-size:26px;color:var(--acid);letter-spacing:1px;text-align:center}
+
+/* ===== RACE LOG ===== */
+.race-entry{background:var(--panel);border:1px solid var(--border);padding:20px;border-radius:var(--r);cursor:pointer;transition:border-color .2s}
+.race-entry:hover{border-color:rgba(200,240,58,.3)}
+.re-city{font-family:var(--font-d);font-size:26px;letter-spacing:2px}
+.re-time{font-family:var(--font-d);font-size:44px;color:var(--acid);letter-spacing:2px;line-height:1.1}
+.re-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.re-badge{font-family:var(--font-m);font-size:9px;letter-spacing:1px;color:var(--muted);background:var(--void);border:1px solid var(--border);padding:3px 8px;text-transform:uppercase;border-radius:2px}
+.re-badge.pr{color:var(--acid);border-color:rgba(200,240,58,.25)}
+
+/* ===== LEADERBOARD ===== */
+.lb-row{display:grid;grid-template-columns:44px 1fr 80px 110px 100px;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);transition:background .15s}
+.lb-row:hover{background:var(--panel2)}
+.lb-rank{font-family:var(--font-d);font-size:24px;color:var(--muted)}
+.lb-rank.gold{color:#ffd700}
+.lb-rank.silver{color:#c0c0c0}
+.lb-rank.bronze{color:#cd7f32}
+.lb-name{font-size:14px;font-weight:500}
+.lb-meta{font-family:var(--font-m);font-size:10px;color:var(--muted)}
+.lb-time{font-family:var(--font-d);font-size:26px;color:var(--acid);letter-spacing:1px}
+.lb-bar-wrap{background:var(--mid);height:4px;border-radius:2px;overflow:hidden}
+.lb-bar-inner{height:100%;background:var(--acid)}
+.lb-hdr{display:grid;grid-template-columns:44px 1fr 80px 110px 100px;gap:14px;padding:8px 18px;font-family:var(--font-m);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)}
+
+/* ===== SIGN IN/UP ===== */
+.auth-wall{display:flex;align-items:center;justify-content:center;min-height:60vh}
+.auth-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:40px;width:100%;max-width:420px;text-align:center}
+.auth-title{font-family:var(--font-d);font-size:42px;letter-spacing:3px;color:var(--acid);margin-bottom:8px}
+.auth-sub{font-size:13px;color:var(--dim);margin-bottom:28px}
+
+/* ===== UTILS ===== */
+.mt-16{margin-top:16px}
+.mt-20{margin-top:20px}
+.mt-24{margin-top:24px}
+.mb-16{margin-bottom:16px}
+.gap-10{gap:10px}
+.flex{display:flex}
+.flex-center{display:flex;align-items:center}
+.flex-between{display:flex;align-items:center;justify-content:space-between}
+.flex-wrap{flex-wrap:wrap}
+.color-acid{color:var(--acid)}
+.color-blue{color:var(--blue)}
+.color-orange{color:var(--orange)}
+.color-green{color:var(--green)}
+.color-red{color:var(--red)}
+.color-muted{color:var(--muted)}
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+.empty{text-align:center;padding:48px 20px;color:var(--muted);font-family:var(--font-m);font-size:11px;letter-spacing:2px;border:1px dashed var(--border);border-radius:var(--r)}
+
+/* ===== MOBILE BOTTOM NAV ===== */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(10,10,14,.97);border-top:1px solid var(--border);backdrop-filter:blur(16px)}
+.mobile-nav-inner{display:flex;align-items:stretch;height:62px}
+.mob-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--muted);transition:color .15s;padding:6px 2px;position:relative;min-width:0}
+.mob-nav-btn:hover{color:var(--dim)}
+.mob-nav-btn.active{color:var(--acid)}
+.mob-nav-btn.active .mob-icon{transform:translateY(-1px)}
+.mob-icon{font-size:20px;transition:transform .15s;line-height:1}
+.mob-label{font-family:var(--font-m);font-size:8px;letter-spacing:.5px;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50px;text-align:center}
+.mob-badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--acid);color:var(--black);font-family:var(--font-m);font-size:8px;padding:1px 5px;border-radius:8px;font-weight:700;min-width:14px;text-align:center;line-height:14px}
+
+/* ===== HAMBURGER / DRAWER ===== */
+.hamburger{display:none;background:none;border:1px solid var(--border);color:var(--text);padding:7px 10px;cursor:pointer;border-radius:var(--r);font-size:18px;line-height:1;align-items:center;justify-content:center}
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:800;display:none;backdrop-filter:blur(4px)}
+.drawer-overlay.open{display:block}
+.drawer{position:fixed;left:0;top:0;bottom:0;width:280px;background:var(--void);border-right:1px solid var(--border);z-index:900;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);overflow-y:auto;display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 18px;border-bottom:1px solid var(--border)}
+.drawer-logo{font-family:var(--font-d);font-size:26px;letter-spacing:3px;color:var(--acid)}
+.drawer-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px 8px;border-radius:var(--r);line-height:1}
+.drawer-close:hover{color:var(--text);background:var(--panel)}
+.drawer-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+.drawer-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r);cursor:pointer;transition:all .15s;background:none;border:1px solid transparent;width:100%;text-align:left;color:var(--dim)}
+.drawer-item:hover{background:var(--panel);color:var(--text)}
+.drawer-item.active{background:rgba(200,240,58,.07);color:var(--acid);border-color:rgba(200,240,58,.15)}
+.drawer-icon{font-size:18px;width:22px;text-align:center;flex-shrink:0}
+.drawer-label{font-family:var(--font-m);font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
+.drawer-badge{margin-left:auto;background:var(--acid);color:var(--black);font-family:var(--font-m);font-size:9px;padding:2px 7px;border-radius:10px;font-weight:600}
+.drawer-footer{padding:14px;border-top:1px solid var(--border)}
+.drawer-data-notice{background:rgba(77,158,255,.06);border:1px solid rgba(77,158,255,.15);padding:10px 12px;border-radius:var(--r)}
+.drawer-data-notice .data-notice-title{font-family:var(--font-m);font-size:9px;letter-spacing:2px;color:var(--blue);text-transform:uppercase;margin-bottom:4px}
+.drawer-data-notice p{font-size:10px;color:var(--muted);line-height:1.5}
+
+@media(max-width:900px){
+  .app-shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .mobile-nav{display:block}
+  .hamburger{display:flex}
+  .page{padding:16px 14px 82px}
+  .topbar{padding:12px 16px}
+  .planner-grid{grid-template-columns:1fr}
+  .community-grid{grid-template-columns:1fr}
+  .profile-hero{grid-template-columns:1fr;gap:16px}
+  .grid-4{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr}
+  .grid-2{grid-template-columns:1fr}
+  .lb-row{grid-template-columns:36px 1fr 90px}
+  .lb-hdr{grid-template-columns:36px 1fr 90px}
+  .lb-row > *:nth-child(3),.lb-row > *:nth-child(5),.lb-hdr > *:nth-child(3),.lb-hdr > *:nth-child(5){display:none}
+  .form-row-3{grid-template-columns:1fr}
+  .form-row-2{grid-template-columns:1fr}
+  .event-card{grid-template-columns:60px 1fr;gap:12px}
+  .event-action{display:none}
+  .events-toolbar{flex-direction:column;align-items:stretch}
+  .search-box{max-width:100%}
+  .app-idea-box{grid-template-columns:1fr}
+  .modal{width:96%;padding:22px}
+  .sec-title{font-size:30px}
+}
+</style>
+</head>
+<body>
+
+<div id="notif" class="notif"></div>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+<!-- SLIDE-OUT DRAWER -->
+<div class="drawer" id="drawer">
+  <div class="drawer-hdr">
+    <div class="drawer-logo">STATION8.AI</div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <nav class="drawer-nav">
+    <button class="drawer-item active" id="drawer-home" onclick="goPage('home',this);closeDrawer()">
+      <span class="drawer-icon">⚡</span><span class="drawer-label">Dashboard</span>
+    </button>
+    <button class="drawer-item" id="drawer-planner" onclick="goPage('planner',this);closeDrawer()">
+      <span class="drawer-icon">🎯</span><span class="drawer-label">Race Planner</span>
+    </button>
+    <button class="drawer-item" id="drawer-log" onclick="goPage('log',this);closeDrawer()">
+      <span class="drawer-icon">📋</span><span class="drawer-label">Race Log</span>
+    </button>
+    <button class="drawer-item" id="drawer-devices" onclick="goPage('devices',this);closeDrawer()">
+      <span class="drawer-icon">⌚</span><span class="drawer-label">Devices & Apps</span>
+      <span class="drawer-badge" id="drawer-device-badge">0</span>
+    </button>
+    <button class="drawer-item" id="drawer-events" onclick="goPage('events',this);closeDrawer()">
+      <span class="drawer-icon">📍</span><span class="drawer-label">Find Events</span>
+      <span class="drawer-badge" style="background:var(--blue);color:#fff">NEW</span>
+    </button>
+    <button class="drawer-item" id="drawer-community" onclick="goPage('community',this);closeDrawer()">
+      <span class="drawer-icon">🏆</span><span class="drawer-label">Community</span>
+      <span class="drawer-badge" id="drawer-community-badge">3</span>
+    </button>
+    <button class="drawer-item" id="drawer-leaderboard" onclick="goPage('leaderboard',this);closeDrawer()">
+      <span class="drawer-icon">📊</span><span class="drawer-label">Leaderboard</span>
+    </button>
+    <button class="drawer-item" id="drawer-account" onclick="goPage('account',this);closeDrawer()">
+      <span class="drawer-icon">👤</span><span class="drawer-label">My Profile</span>
+    </button>
+    <button class="drawer-item" id="drawer-social" onclick="goPage('social',this);closeDrawer()">
+      <span class="drawer-icon">📲</span><span class="drawer-label">Social Connect</span>
+    </button>
+    <button class="drawer-item" id="drawer-pricing" onclick="goPage('pricing',this);closeDrawer()">
+      <span class="drawer-icon">💎</span><span class="drawer-label">Pricing</span>
+    </button>
+  </nav>
+  <div class="drawer-footer">
+    <div class="drawer-data-notice">
+      <div class="data-notice-title">ℹ️ Data Sources</div>
+      <p>Events & leaderboard use curated demo data. Real sync requires Hyrox partnership + device OAuth.</p>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">
+      <a href="station8-privacy.html" style="font-family:var(--font-m);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-decoration:none">Privacy</a>
+      <a href="station8-terms.html" style="font-family:var(--font-m);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-decoration:none">Terms</a>
+      <a href="station8-contact.html" style="font-family:var(--font-m);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-decoration:none">Contact</a>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <button class="mob-nav-btn active" id="mobnav-home" onclick="goPage('home',this)">
+      <span class="mob-icon">⚡</span><span class="mob-label">Home</span>
+    </button>
+    <button class="mob-nav-btn" id="mobnav-planner" onclick="goPage('planner',this)">
+      <span class="mob-icon">🎯</span><span class="mob-label">Planner</span>
+    </button>
+    <button class="mob-nav-btn" id="mobnav-events" onclick="goPage('events',this)">
+      <span class="mob-icon">📍</span><span class="mob-label">Events</span>
+    </button>
+    <button class="mob-nav-btn" id="mobnav-community" onclick="goPage('community',this)">
+      <span class="mob-badge" id="mob-community-badge">3</span>
+      <span class="mob-icon">🏆</span><span class="mob-label">Community</span>
+    </button>
+    <button class="mob-nav-btn" id="mobnav-account" onclick="goPage('account',this)">
+      <span class="mob-icon">👤</span><span class="mob-label">Profile</span>
+    </button>
+    <button class="mob-nav-btn" onclick="openDrawer()">
+      <span class="mob-icon">☰</span><span class="mob-label">More</span>
+    </button>
+  </div>
+</nav>
+
+<!-- MODAL: Connect Device -->
+<div class="modal-overlay" id="deviceModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title" id="deviceModalTitle">CONNECT DEVICE</div>
+      <button class="modal-close" onclick="closeModal('deviceModal')">✕</button>
+    </div>
+    <div id="deviceModalBody"></div>
+  </div>
+</div>
+
+<!-- MODAL: Event Detail -->
+<div class="modal-overlay" id="eventModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title" id="eventModalTitle">EVENT</div>
+      <button class="modal-close" onclick="closeModal('eventModal')">✕</button>
+    </div>
+    <div id="eventModalBody"></div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">STATION8.AI</div>
+      <div class="logo-sub">/ Hyrox Race Intelligence</div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="goPage('home',this)">
+        <span class="nav-icon">⚡</span><span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-item" onclick="goPage('planner',this)">
+        <span class="nav-icon">🎯</span><span class="nav-label">Race Planner</span>
+      </button>
+      <button class="nav-item" onclick="goPage('log',this)">
+        <span class="nav-icon">📋</span><span class="nav-label">Race Log</span>
+      </button>
+      <button class="nav-item" onclick="goPage('devices',this)">
+        <span class="nav-icon">⌚</span><span class="nav-label">Devices & Apps</span>
+        <span class="nav-badge" id="device-badge">0</span>
+      </button>
+      <button class="nav-item" onclick="goPage('events',this)">
+        <span class="nav-icon">📍</span><span class="nav-label">Find Events</span>
+        <span class="nav-badge" style="background:var(--blue);color:#fff;">NEW</span>
+      </button>
+      <button class="nav-item" onclick="goPage('community',this)">
+        <span class="nav-icon">🏆</span><span class="nav-label">Community</span>
+        <span class="nav-badge" id="community-badge">3</span>
+      </button>
+      <button class="nav-item" onclick="goPage('leaderboard',this)">
+        <span class="nav-icon">📊</span><span class="nav-label">Leaderboard</span>
+      </button>
+      <button class="nav-item" onclick="goPage('account',this)">
+        <span class="nav-icon">👤</span><span class="nav-label">My Profile</span>
+      </button>
+      <button class="nav-item" onclick="goPage('social',this)">
+        <span class="nav-icon">📲</span><span class="nav-label">Social Connect</span>
+      </button>
+      <button class="nav-item" onclick="goPage('pricing',this)">
+        <span class="nav-icon">💎</span><span class="nav-label">Pricing</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="data-notice">
+        <div class="data-notice-title">ℹ️ Data Sources</div>
+        <div class="data-notice-text">Leaderboard & events use <strong>curated demo data</strong>. Real-time sync requires Garmin/Strava OAuth, and official Hyrox event partnership.</div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
+        <a href="station8-privacy.html" style="font-family:var(--font-m);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">Privacy</a>
+        <a href="station8-terms.html" style="font-family:var(--font-m);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">Terms</a>
+        <a href="station8-contact.html" style="font-family:var(--font-m);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">Contact</a>
+        <a href="index.html" style="font-family:var(--font-m);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--acid)'" onmouseout="this.style.color='var(--muted)'">← Home</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="openDrawer()">☰</button>
+        <div class="topbar-title" id="topbar-title">DASHBOARD</div>
+      </div>
+      <div class="topbar-right">
+        <div class="live-badge"><div class="pulse"></div>DEMO DATA</div>
+        <button class="btn btn-ghost btn-sm" onclick="goPage('account',document.querySelector('[onclick*=account]'))">
+          <span id="topbar-user">Sign In</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="page active" id="page-home">
+      <div class="data-banner">
+        <div class="data-banner-icon">ℹ️</div>
+        <p><strong>About the data:</strong> The leaderboard, event listings, and community feed below use <strong>realistic curated demo data</strong> — not a live API. A production version would connect to Hyrox's official results platform (requires partnership), your Garmin/Apple Health/Strava via OAuth, and a real backend. Everything you enter (race log, profile) is saved locally on your device.</p>
+      </div>
+      <div class="sec-hdr"><div class="sec-title">DASHBOARD</div><div class="sec-tag">Overview</div></div>
+      <div class="grid-4 mb-16" id="dash-stats">
+        <div class="stat-card acid"><div class="stat-num color-acid" id="d-races">0</div><div class="stat-label">Races Logged</div></div>
+        <div class="stat-card blue"><div class="stat-num color-blue" id="d-pr">—</div><div class="stat-label">Personal Best</div></div>
+        <div class="stat-card green"><div class="stat-num color-green" id="d-devices">0</div><div class="stat-label">Devices Connected</div></div>
+        <div class="stat-card orange"><div class="stat-num color-orange" id="d-next">—</div><div class="stat-label">Next Event</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="p-title">Recent Activity</div>
+          <div id="dash-recent"><div class="empty">No races logged yet</div></div>
+        </div>
+        <div class="panel">
+          <div class="p-title">Community Highlights</div>
+          <div id="dash-community"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RACE PLANNER ===== -->
+    <div class="page" id="page-planner">
+      <div class="sec-hdr"><div class="sec-title">RACE PLANNER</div><div class="sec-tag">AI Strategy</div></div>
+      <div class="planner-grid">
+        <div>
+          <div class="panel">
+            <div class="p-title">Athlete Setup</div>
+            <div class="fgroup mb-16"><label>Category</label>
+              <select id="p-cat" onchange="calcPlan()"><option value="open">Open</option><option value="pro">Pro</option><option value="doubles">Doubles</option></select>
+            </div>
+            <div class="fgroup mb-16"><label>Fitness Level</label>
+              <select id="p-level" onchange="calcPlan()">
+                <option value="beginner">Beginner (1st race)</option>
+                <option value="intermediate" selected>Intermediate (1–3 races)</option>
+                <option value="advanced">Advanced (4+ races)</option>
+                <option value="elite">Elite (&lt;55min)</option>
+              </select>
+            </div>
+            <div class="fgroup mb-16">
+              <label>Target Time</label>
+              <div class="range-val" id="p-target-v">75 MIN</div>
+              <input type="range" id="p-target" min="52" max="130" value="75" step="1" oninput="calcPlan()">
+              <div class="flex-between mt-16" style="font-family:var(--font-m);font-size:10px;color:var(--muted)"><span>52 min</span><span>130 min</span></div>
+            </div>
+            <div class="fgroup mb-16">
+              <label>Run vs Gym Strength</label>
+              <div class="flex-between" style="font-family:var(--font-m);font-size:10px;margin-bottom:6px"><span class="color-blue" id="p-run-v">RUN 50%</span><span class="color-acid" id="p-gym-v">GYM 50%</span></div>
+              <input type="range" id="p-run" min="20" max="80" value="50" step="5" oninput="calcPlan()">
+            </div>
+            <div class="fgroup mb-16">
+              <label>Sled Confidence</label>
+              <div class="range-val" id="p-sled-v" style="font-size:18px;">Medium</div>
+              <input type="range" id="p-sled" min="1" max="3" value="2" step="1" oninput="calcPlan()">
+              <div class="flex-between mt-16" style="font-family:var(--font-m);font-size:10px;color:var(--muted)"><span>Weak</span><span>Strong</span></div>
+            </div>
+            <button class="btn btn-acid" style="width:100%;margin-top:8px" onclick="getAICoach()">⚡ GET AI RACE PLAN</button>
+            <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="saveToPlanLog()">💾 SAVE TO LOG</button>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="p-title">Station Splits</div>
+            <div style="display:grid;grid-template-columns:28px 1fr 72px 90px;gap:10px;padding:6px 16px;font-family:var(--font-m);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);margin-bottom:8px">
+              <span>#</span><span>Station</span><span style="text-align:right">Split</span><span style="text-align:right">Effort</span>
+            </div>
+            <div id="planner-stations"></div>
+            <div class="totals-row" id="planner-totals"></div>
+          </div>
+          <div class="ai-coach-box mt-20" id="ai-coach">
+            <div id="ai-placeholder" style="font-family:var(--font-m);font-size:11px;color:var(--muted);letter-spacing:1px">Click "Get AI Race Plan" for personalized coaching</div>
+            <div id="ai-loading" style="display:none;align-items:center;gap:10px;font-family:var(--font-m);font-size:12px;color:var(--dim)">
+              Analyzing profile <div class="ai-dots"><span></span><span></span><span></span></div>
+            </div>
+            <div id="ai-tips" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RACE LOG ===== -->
+    <div class="page" id="page-log">
+      <div class="sec-hdr"><div class="sec-title">RACE LOG</div><div class="sec-tag">History</div></div>
+      <div class="flex gap-10 mb-16">
+        <button class="btn btn-acid" onclick="toggleAddRace()">+ LOG RACE</button>
+        <button class="btn btn-outline" onclick="clearLog()">CLEAR ALL</button>
+      </div>
+      <div id="add-race-panel" style="display:none" class="panel mb-16">
+        <div class="p-title">New Race Entry</div>
+        <div class="form-row form-row-3">
+          <div class="fgroup"><label>City / Event Name</label><input type="text" id="lr-city" placeholder="e.g. London 2025"></div>
+          <div class="fgroup"><label>Finish Time (MM:SS)</label><input type="text" id="lr-time" placeholder="72:30"></div>
+          <div class="fgroup"><label>Category</label><select id="lr-cat"><option>Open</option><option>Pro</option><option>Doubles</option></select></div>
+        </div>
+        <div class="form-row form-row-3">
+          <div class="fgroup"><label>Date</label><input type="date" id="lr-date"></div>
+          <div class="fgroup"><label>Overall Place</label><input type="number" id="lr-place" placeholder="e.g. 42"></div>
+          <div class="fgroup"><label>Notes</label><input type="text" id="lr-notes" placeholder="How did it feel?"></div>
+        </div>
+        <div class="flex gap-10">
+          <button class="btn btn-acid" onclick="addRace()">SAVE RACE</button>
+          <button class="btn btn-outline" onclick="toggleAddRace()">CANCEL</button>
+        </div>
+      </div>
+      <div class="grid-2" id="race-log-grid"><div class="empty" style="grid-column:1/-1">No races yet — log your first!</div></div>
+    </div>
+
+    <!-- ===== DEVICES ===== -->
+    <div class="page" id="page-devices">
+      <div class="sec-hdr"><div class="sec-title">DEVICES & APPS</div><div class="sec-tag">Sync</div></div>
+      <div class="data-banner">
+        <div class="data-banner-icon">⚠️</div>
+        <p><strong>Integration note:</strong> Real device sync requires OAuth authentication with each platform. <strong>Garmin Connect</strong> and <strong>Strava</strong> have public APIs. <strong>Apple Health</strong> requires native iOS. <strong>Whoop</strong> has a developer API. <strong>Polar/Suunto/Coros</strong> offer partner APIs. Below simulates the connection flow — in production each "Connect" button would initiate an OAuth handshake.</p>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="swTab(this,'dev-watches')">Smartwatches</button>
+        <button class="tab" onclick="swTab(this,'dev-apps')">Fitness Apps</button>
+        <button class="tab" onclick="swTab(this,'dev-sync')">Sync History</button>
+      </div>
+      <div class="tab-body active" id="dev-watches">
+        <div class="device-grid" id="watches-grid"></div>
+      </div>
+      <div class="tab-body" id="dev-apps">
+        <div class="device-grid" id="apps-grid"></div>
+      </div>
+      <div class="tab-body" id="dev-sync">
+        <div class="panel">
+          <div class="p-title">Recent Sync Activity</div>
+          <div id="sync-log"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EVENTS ===== -->
+    <div class="page" id="page-events">
+      <div class="sec-hdr"><div class="sec-title">FIND EVENTS</div><div class="sec-tag">Worldwide</div></div>
+      <div class="data-banner">
+        <div class="data-banner-icon">📍</div>
+        <p><strong>Data source:</strong> Event listings are <strong>curated demo data</strong> based on the real Hyrox 2025/26 calendar. In production this would connect to the official Hyrox API (partner access required) or scrape <strong>hyrox.com/events</strong>. Distances shown are illustrative only without real geolocation.</p>
+      </div>
+      <div class="events-toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="evt-search" placeholder="Search city, country..." oninput="filterEvents()">
+        </div>
+        <select class="filter-select" id="evt-region" onchange="filterEvents()">
+          <option value="">All Regions</option>
+          <option value="Europe">Europe</option>
+          <option value="North America">North America</option>
+          <option value="Asia Pacific">Asia Pacific</option>
+          <option value="Middle East">Middle East</option>
+          <option value="UK">United Kingdom</option>
+        </select>
+        <select class="filter-select" id="evt-month" onchange="filterEvents()">
+          <option value="">All Months</option>
+          <option value="3">March</option>
+          <option value="4">April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+          <option value="7">July</option>
+          <option value="8">August</option>
+          <option value="9">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+        <select class="filter-select" id="evt-cat" onchange="filterEvents()">
+          <option value="">All Categories</option>
+          <option value="open">Open</option>
+          <option value="pro">Pro</option>
+          <option value="doubles">Doubles</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="nearMeEvents()">📍 Near Me</button>
+      </div>
+      <div id="event-count" style="font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:14px"></div>
+      <div class="event-list" id="events-list"></div>
+    </div>
+
+    <!-- ===== COMMUNITY ===== -->
+    <div class="page" id="page-community">
+      <div class="sec-hdr"><div class="sec-title">COMMUNITY</div><div class="sec-tag">Feed</div></div>
+      <div class="community-grid">
+        <div>
+          <!-- COMPOSER -->
+          <div class="post-composer" id="composer-box">
+            <div class="composer-top">
+              <div class="avatar" id="composer-avatar" style="background:var(--mid)">?</div>
+              <textarea class="composer-input" id="composer-text" placeholder="Share your race result, achievement or tip..."></textarea>
+            </div>
+            <div class="flex-between">
+              <div class="flex gap-10">
+                <button class="attach-btn" onclick="setPostType('result')">🏁 Result</button>
+                <button class="attach-btn" onclick="setPostType('tip')">💡 Tip</button>
+                <button class="attach-btn" onclick="setPostType('milestone')">🏆 Milestone</button>
+              </div>
+              <button class="btn btn-acid btn-sm" onclick="submitPost()">POST</button>
+            </div>
+            <div id="post-type-indicator" style="font-family:var(--font-m);font-size:9px;color:var(--acid);letter-spacing:1px;margin-top:8px;display:none"></div>
+          </div>
+          <div class="feed" id="community-feed"></div>
+        </div>
+        <div>
+          <div class="sidebar-widget">
+            <div class="widget-title">Trending Topics</div>
+            <div id="trending-list"></div>
+          </div>
+          <div class="sidebar-widget">
+            <div class="widget-title">Active Athletes</div>
+            <div id="active-athletes"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== LEADERBOARD ===== -->
+    <div class="page" id="page-leaderboard">
+      <div class="sec-hdr"><div class="sec-title">LEADERBOARD</div><div class="sec-tag">Demo Data</div></div>
+      <div class="data-banner">
+        <div class="data-banner-icon">ℹ️</div>
+        <p>Times below are <strong>realistic demo data</strong> modelled on typical Hyrox finish distributions. Real-time official results require Hyrox partnership access.</p>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="swTab(this,'lb-open')">Open</button>
+        <button class="tab" onclick="swTab(this,'lb-pro')">Pro</button>
+        <button class="tab" onclick="swTab(this,'lb-doubles')">Doubles</button>
+        <button class="tab" onclick="swTab(this,'lb-local')">Near Me</button>
+      </div>
+      <div class="tab-body active" id="lb-open"></div>
+      <div class="tab-body" id="lb-pro"></div>
+      <div class="tab-body" id="lb-doubles"></div>
+      <div class="tab-body" id="lb-local"></div>
+    </div>
+
+    <!-- ===== ACCOUNT ===== -->
+    <div class="page" id="page-account">
+      <div id="account-content"></div>
+    </div>
+
+    <!-- ===== SOCIAL CONNECT ===== -->
+    <div class="page" id="page-social">
+      <div class="sec-hdr"><div class="sec-title">SOCIAL CONNECT</div><div class="sec-tag">Share & Sync</div></div>
+      <div class="data-banner">
+        <div class="data-banner-icon">📲</div>
+        <p><strong>How sharing works:</strong> Facebook and X sharing open directly — no setup needed. Instagram and TikTok copy your link to clipboard (their APIs require business accounts). Strava shares directly once connected in Devices &amp; Apps. The <strong>Result Card</strong> feature generates a brandable PNG you can post anywhere.</p>
+      </div>
+
+      <!-- CONNECTED ACCOUNTS -->
+      <div class="panel mb-16" style="margin-bottom:20px">
+        <div class="p-title">Connected Social Accounts</div>
+        <div id="social-connected-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
+      </div>
+
+      <!-- SHARE CENTRE -->
+      <div class="grid-2" style="gap:20px">
+        <div class="panel">
+          <div class="p-title">Share a Result</div>
+          <p style="font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.6">Pick a race from your log and generate a share card or post directly to your connected platforms.</p>
+          <div class="fgroup" style="margin-bottom:14px">
+            <label>Select Race</label>
+            <select id="social-race-picker" style="width:100%"><option value="">— Choose a race —</option></select>
+          </div>
+          <div id="social-race-preview" style="display:none;background:var(--void);border:1px solid var(--border);padding:16px;border-radius:3px;margin-bottom:14px"></div>
+          <div style="display:flex;flex-direction:column;gap:8px" id="social-share-btns">
+            <button class="btn btn-acid" onclick="triggerRaceShare()" style="font-size:13px">📤 SHARE THIS RESULT</button>
+            <button class="btn btn-outline" onclick="triggerCardDownload()" style="font-size:13px">🖼 DOWNLOAD RESULT CARD (PNG)</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="p-title">Platform Guide</div>
+          <div style="display:flex;flex-direction:column;gap:0" id="platform-guide-list"></div>
+        </div>
+      </div>
+
+      <!-- SHARE CARD PREVIEW -->
+      <div class="panel" style="margin-top:20px">
+        <div class="p-title">Result Card Preview</div>
+        <p style="font-size:13px;color:var(--dim);margin-bottom:16px">Your result card is generated as a 1080×1080 PNG — perfect for Instagram, Facebook, and TikTok. Includes your time, station splits, and Station8.AI branding.</p>
+        <canvas id="card-preview" width="400" height="400" style="width:280px;height:280px;border:1px solid var(--border);border-radius:3px;display:block"></canvas>
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="renderCardPreview()">↻ REFRESH PREVIEW</button>
+      </div>
+    </div>
+
+
+    <!-- ===== PRICING ===== -->
+    <div class="page" id="page-pricing">
+      <div class="sec-hdr"><div class="sec-title">PRICING</div><div class="sec-tag">Plans & Features</div></div>
+
+      <!-- BILLING TOGGLE -->
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:36px;flex-wrap:wrap">
+        <span style="font-family:var(--font-m);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)" id="pr-lbl-mo">Monthly</span>
+        <div id="pr-toggle" onclick="togglePricing()" style="width:48px;height:26px;background:var(--panel2);border:1px solid var(--border);border-radius:13px;cursor:pointer;position:relative;transition:background .2s">
+          <div id="pr-thumb" style="width:18px;height:18px;background:var(--muted);border-radius:50%;position:absolute;top:3px;left:4px;transition:all .25s"></div>
+        </div>
+        <span style="font-family:var(--font-m);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)" id="pr-lbl-yr">Annual</span>
+        <span id="pr-save-badge" style="background:rgba(200,240,58,.1);border:1px solid rgba(200,240,58,.2);color:var(--acid);font-family:var(--font-m);font-size:9px;letter-spacing:2px;padding:3px 10px;border-radius:10px;text-transform:uppercase;opacity:.4">Save 33%</span>
+      </div>
+
+      <!-- PLAN CARDS -->
+      <div style="display:grid;grid-template-columns:1fr 1.06fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:40px" id="pr-cards-grid">
+
+        <!-- FREE -->
+        <div style="background:var(--panel);padding:28px 24px">
+          <div style="font-size:28px;margin-bottom:10px">🆓</div>
+          <div style="font-family:var(--font-d);font-size:30px;letter-spacing:2px;color:var(--dim)">FREE</div>
+          <div style="font-size:13px;color:var(--dim);font-style:italic;margin-bottom:20px">Get started, no card needed</div>
+          <div style="font-family:var(--font-d);font-size:52px;color:var(--text);line-height:1;margin-bottom:4px">£0</div>
+          <div style="font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:24px">/forever</div>
+          <button class="btn btn-ghost" style="width:100%;margin-bottom:20px;font-size:11px" onclick="goPage('account',document.querySelector("[onclick*=account]"))">GET STARTED FREE</button>
+          <div style="height:1px;background:var(--border);margin-bottom:18px"></div>
+          <div id="pr-free-features"></div>
+        </div>
+
+        <!-- PRO -->
+        <div style="background:var(--panel2);padding:28px 24px;position:relative">
+          <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);font-family:var(--font-m);font-size:8px;letter-spacing:2px;background:var(--acid);color:var(--black);padding:3px 14px;border-radius:0 0 4px 4px;font-weight:700">MOST POPULAR</div>
+          <div style="font-size:28px;margin-bottom:10px;margin-top:14px">⚡</div>
+          <div style="font-family:var(--font-d);font-size:30px;letter-spacing:2px;color:var(--acid)">PRO</div>
+          <div style="font-size:13px;color:var(--dim);font-style:italic;margin-bottom:20px">For serious Hyrox athletes</div>
+          <div style="font-family:var(--font-d);font-size:52px;color:var(--acid);line-height:1;margin-bottom:4px">£<span id="pr-pro-price">4.99</span></div>
+          <div style="font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:4px" id="pr-pro-sub">/month</div>
+          <div style="font-family:var(--font-m);font-size:10px;color:var(--acid);letter-spacing:.5px;margin-bottom:20px;min-height:16px" id="pr-pro-note"></div>
+          <button class="btn btn-acid" style="width:100%;margin-bottom:20px;font-size:11px" onclick="startProCheckout()">START PRO — 7 DAYS FREE</button>
+          <div style="height:1px;background:var(--border);margin-bottom:18px"></div>
+          <div id="pr-pro-features"></div>
+        </div>
+
+        <!-- GYM -->
+        <div style="background:var(--panel);padding:28px 24px">
+          <div style="font-size:28px;margin-bottom:10px">🏋️</div>
+          <div style="font-family:var(--font-d);font-size:30px;letter-spacing:2px;color:var(--orange)">GYM</div>
+          <div style="font-size:13px;color:var(--dim);font-style:italic;margin-bottom:20px">For Hyrox-affiliated gyms</div>
+          <div style="font-family:var(--font-d);font-size:52px;color:var(--orange);line-height:1;margin-bottom:4px">£<span id="pr-gym-price">29</span></div>
+          <div style="font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:4px" id="pr-gym-sub">/month</div>
+          <div style="font-family:var(--font-m);font-size:10px;color:var(--orange);letter-spacing:.5px;margin-bottom:20px;min-height:16px" id="pr-gym-note"></div>
+          <button class="btn" style="width:100%;margin-bottom:20px;font-size:11px;background:var(--orange);color:#fff" onclick="contactGym()">CONTACT US</button>
+          <div style="height:1px;background:var(--border);margin-bottom:18px"></div>
+          <div id="pr-gym-features"></div>
+        </div>
+      </div>
+
+      <!-- COMPARISON TABLE -->
+      <div class="panel" style="margin-bottom:32px">
+        <div class="p-title">Full Feature Comparison</div>
+        <div style="overflow-x:auto">
+          <table id="pr-compare-table" style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border)">
+                <th style="padding:10px 14px;text-align:left;font-family:var(--font-m);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;width:55%">Feature</th>
+                <th style="padding:10px 14px;text-align:center;font-family:var(--font-m);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase">Free</th>
+                <th style="padding:10px 14px;text-align:center;font-family:var(--font-m);font-size:9px;letter-spacing:2px;color:var(--acid);text-transform:uppercase">Pro</th>
+                <th style="padding:10px 14px;text-align:center;font-family:var(--font-m);font-size:9px;letter-spacing:2px;color:var(--orange);text-transform:uppercase">Gym</th>
+              </tr>
+            </thead>
+            <tbody id="pr-compare-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="panel">
+        <div class="p-title">Common Questions</div>
+        <div id="pr-faq-list" style="display:flex;flex-direction:column;gap:0"></div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<script>
+// ============================================================
+//  SUPABASE SETUP
+//  Replace these two values with your own from supabase.com
+//  Project Settings → API → Project URL + anon public key
+// ============================================================
+const SUPABASE_URL = 'https://xfydmhfvvqhioevgrrsw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmeWRtaGZ2dnFoaW9ldmdycnN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NjIxMzcsImV4cCI6MjA4OTEzODEzN30.3CKU7NWEzyq0-KIbqlOItM61oSp3zT-SpsAsj5wdylc';
+
+// Initialise Supabase client (only when real keys are provided)
+let _sb = null;
+let SUPABASE_READY = false;
+try {
+  if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+    if (window.supabase && window.supabase.createClient) {
+      _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      SUPABASE_READY = true;
+    } else {
+      console.warn('Station8.AI: Supabase CDN not loaded — check internet connection');
+    }
+  }
+} catch(e) {
+  console.warn('Station8.AI: Supabase init error —', e.message);
+}
+
+// ============================================================
+//  STATE
+//  User profile comes from Supabase when connected,
+//  falls back to localStorage when running in demo mode
+// ============================================================
+let APP = {
+  user: JSON.parse(localStorage.getItem('station8-user') || 'null'),
+  supabaseSession: null,
+  races: JSON.parse(localStorage.getItem('station8-races') || '[]'),
+  devices: JSON.parse(localStorage.getItem('station8-devices') || '{}'),
+  goals: JSON.parse(localStorage.getItem('station8-goals') || 'null'),
+  following: JSON.parse(localStorage.getItem('station8-following') || '[]'),
+  currentPostType: 'result',
+  currentSplits: [],
+  communityPosts: JSON.parse(localStorage.getItem('station8-posts') || '[]'),
+};
+function save(key, val){ localStorage.setItem('station8-'+key, JSON.stringify(val)); }
+
+// ============================================================
+//  SUPABASE AUTH LISTENER
+//  Fires whenever login state changes — on page load, sign in,
+//  sign out, or when a magic link is clicked from email
+// ============================================================
+if (SUPABASE_READY && _sb) {
+  _sb.auth.onAuthStateChange(async (event, session) => {
+    APP.supabaseSession = session;
+    if (session && session.user) {
+      // User just signed in — load their profile from the database
+      await loadUserProfile(session.user);
+      document.getElementById('topbar-user').textContent = APP.user?.name?.split(' ')[0] || 'Athlete';
+      renderDash();
+      renderAccount();
+      notify('Signed in! Welcome back 🏁', 'var(--green)');
+    } else if (event === 'SIGNED_OUT') {
+      APP.user = null;
+      APP.supabaseSession = null;
+      save('user', null);
+      document.getElementById('topbar-user').textContent = 'Sign In';
+      renderAccount();
+      notify('Signed out');
+    }
+  });
+}
+
+async function loadUserProfile(authUser) {
+  if (!SUPABASE_READY) return;
+  // Try to get existing profile row from 'profiles' table
+  const { data, error } = await _sb
+    .from('profiles')
+    .select('*')
+    .eq('id', authUser.id)
+    .single();
+
+  if (data) {
+    // Profile exists — load it
+    APP.user = {
+      id: authUser.id,
+      email: authUser.email,
+      name: data.name || authUser.email.split('@')[0],
+      city: data.city || '',
+      bio: data.bio || '',
+      cat: data.cat || 'Open',
+      color: data.color || '#2a4a2a',
+      tier: data.tier || 'free',
+    };
+  } else {
+    // First sign-in — create a profile row
+    const newProfile = {
+      id: authUser.id,
+      email: authUser.email,
+      name: authUser.email.split('@')[0],
+      city: '',
+      bio: '',
+      cat: 'Open',
+      color: '#2a4a2a',
+      tier: 'free',
+    };
+    await _sb.from('profiles').insert([newProfile]);
+    APP.user = { ...newProfile };
+  }
+  save('user', APP.user);
+}
+
+// ============================================================
+//  NAV — syncs sidebar + drawer + mobile bottom nav
+// ============================================================
+const PAGE_TITLES={home:'DASHBOARD',planner:'RACE PLANNER',log:'RACE LOG',devices:'DEVICES & APPS',events:'FIND EVENTS',community:'COMMUNITY',leaderboard:'LEADERBOARD',account:'MY PROFILE',social:'SOCIAL CONNECT',pricing:'PRICING'};
+// Pages that appear in the mobile bottom bar
+const MOB_PAGES=['home','planner','events','community','account'];
+
+function goPage(id, btn){
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+
+  // Update topbar title
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[id]||id.toUpperCase();
+
+  // Sync sidebar nav
+  document.querySelectorAll('.sidebar .nav-item').forEach(n=>n.classList.remove('active'));
+  const sidebarMatch = document.querySelector(`.sidebar .nav-item[onclick*="${id}"]`);
+  if(sidebarMatch) sidebarMatch.classList.add('active');
+
+  // Sync drawer nav
+  document.querySelectorAll('.drawer-item').forEach(n=>n.classList.remove('active'));
+  const drawerMatch = document.getElementById('drawer-'+id);
+  if(drawerMatch) drawerMatch.classList.add('active');
+
+  // Sync mobile bottom nav
+  document.querySelectorAll('.mob-nav-btn').forEach(n=>n.classList.remove('active'));
+  const mobMatch = document.getElementById('mobnav-'+id);
+  if(mobMatch) mobMatch.classList.add('active');
+
+  // Trigger page render
+  if(id==='home') renderDash();
+  if(id==='planner') calcPlan();
+  if(id==='log') renderLog();
+  if(id==='devices') renderDevices();
+  if(id==='events') renderEvents();
+  if(id==='community') renderCommunity();
+  if(id==='leaderboard') renderLeaderboard();
+  if(id==='account') renderAccount();
+  if(id==='social'){renderSocialPage();setTimeout(renderCardPreview,100);}
+  if(id==='pricing'){renderPricingPage();}
+}
+
+function openDrawer(){
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+function swTab(btn, id){
+  btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const container = btn.closest('.page') || btn.closest('.modal') || document.body;
+  container.querySelectorAll('.tab-body').forEach(tb=>{
+    if(tb.id===id) tb.classList.add('active'); else tb.classList.remove('active');
+  });
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function showModal(id){ document.getElementById(id).classList.add('open'); }
+function notify(msg, color='var(--acid)'){
+  const n=document.getElementById('notif');
+  n.textContent=msg; n.style.borderColor=color; n.style.color=color;
+  n.classList.add('show'); setTimeout(()=>n.classList.remove('show'),3000);
+}
+
+// ============================================================
+//  PLANNER
+// ============================================================
+const STATIONS=[
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},
+  {n:'SkiErg — 1km',t:'work',bMin:3.0,bMax:5.5},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},
+  {n:'Sled Push — 50m',t:'work',bMin:2.3,bMax:5.2},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},
+  {n:'Sled Pull — 50m',t:'work',bMin:2.8,bMax:5.0},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},
+  {n:'Burpee Broad Jumps',t:'work',bMin:3.2,bMax:7.2},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},
+  {n:'Rowing — 1km',t:'work',bMin:3.3,bMax:5.5},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},
+  {n:'Farmers Carry — 200m',t:'work',bMin:2.3,bMax:4.5},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},
+  {n:'Sandbag Lunges — 100m',t:'work',bMin:3.8,bMax:7.0},
+  {n:'1km Run',t:'run',bMin:4.2,bMax:7.8},
+  {n:'Wall Balls — 100 reps',t:'work',bMin:3.8,bMax:8.0},
+];
+const SHORT=['R1','Ski','R2','Sled↑','R3','Sled↓','R4','Burp','R5','Row','R6','Carry','R7','Lunge','R8','WBall'];
+const EFFORT_LABELS=['Easy','Moderate','Steady','Hard','Max'];
+const EFFORT_COLORS=['var(--green)','var(--blue)','var(--acid)','var(--orange)','var(--red)'];
+function fmt(m){const mi=Math.floor(m),s=Math.round((m-mi)*60);return mi+':'+String(s).padStart(2,'0');}
+function parseT(s){const p=s.split(':');return parseInt(p[0])+(parseInt(p[1]||0)/60);}
+
+function calcPlan(){
+  const target=parseInt(document.getElementById('p-target').value);
+  const run=parseInt(document.getElementById('p-run').value);
+  const sled=parseInt(document.getElementById('p-sled').value);
+  const level=document.getElementById('p-level').value;
+  document.getElementById('p-target-v').textContent=target+' MIN';
+  document.getElementById('p-run-v').textContent='RUN '+run+'%';
+  document.getElementById('p-gym-v').textContent='GYM '+(100-run)+'%';
+  const sledLbls={1:'Weak',2:'Medium',3:'Strong'};
+  document.getElementById('p-sled-v').textContent=sledLbls[sled];
+  const lMod={beginner:1.22,intermediate:1.0,advanced:.86,elite:.73};
+  const base=STATIONS.reduce((a,s)=>a+(s.bMin+s.bMax)/2,0);
+  let splits=STATIONS.map((s,i)=>{
+    let r=((s.bMin+s.bMax)/2)/base;
+    let t=r*target;
+    if(s.t==='run') t*=(1+(50-run)*.006);
+    else t*=(1-(50-run)*.004);
+    if(s.n.includes('Sled')){const sm={1:1.22,2:1.0,3:.80};t*=sm[sled];}
+    return {...s,time:t};
+  });
+  const total=splits.reduce((a,s)=>a+s.time,0);
+  const sc=target/total;
+  splits=splits.map(s=>({...s,time:s.time*sc}));
+  APP.currentSplits=splits;
+  const maxT=Math.max(...splits.map(s=>s.time));
+  const totalRun=splits.filter(s=>s.t==='run').reduce((a,s)=>a+s.time,0);
+  const totalWork=splits.filter(s=>s.t==='work').reduce((a,s)=>a+s.time,0);
+  document.getElementById('planner-stations').innerHTML=splits.map((s,i)=>{
+    const idx=Math.min(4,Math.floor((s.time/maxT)*5));
+    const color=EFFORT_COLORS[idx]; const lbl=EFFORT_LABELS[idx];
+    const pct=Math.round((s.time/target)*100);
+    return `<div class="station-row">
+      <div class="stn-num">${i+1}</div>
+      <div><div class="stn-name">${s.n}</div><div class="stn-type">${s.t==='run'?'🏃 Run':'💪 Work'}</div></div>
+      <div class="stn-time ${s.t}">${fmt(s.time)}</div>
+      <div><div class="stn-effort" style="color:${color}">${lbl}</div><div class="effort-bar-wrap"><div class="effort-bar-fill" style="width:${pct*2.5}%;background:${s.t==='run'?'var(--blue)':'var(--acid)'}"></div></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('planner-totals').innerHTML=`
+    <div class="total-cell"><div class="total-n color-acid">${fmt(target)}</div><div class="total-l">Total</div></div>
+    <div class="total-cell"><div class="total-n color-blue">${fmt(totalRun)}</div><div class="total-l">Running</div></div>
+    <div class="total-cell"><div class="total-n color-orange">${fmt(totalWork)}</div><div class="total-l">Work</div></div>`;
+}
+
+async function getAICoach(){
+  const target=document.getElementById('p-target').value;
+  const level=document.getElementById('p-level').value;
+  const run=document.getElementById('p-run').value;
+  const sled=document.getElementById('p-sled').value;
+  const sledLbls={1:'weak',2:'moderate',3:'strong'};
+  const weakness=APP.currentSplits.reduce((a,b)=>a.time>b.time?a:b,{time:0});
+  document.getElementById('ai-placeholder').style.display='none';
+  document.getElementById('ai-loading').style.display='flex';
+  document.getElementById('ai-tips').style.display='none';
+  const prompt=`You are Station8.AI, a Hyrox race strategy coach. Give 4 sharp tips for:
+Target: ${target}min, Level: ${level}, Run bias: ${run}%, Sled confidence: ${sledLbls[sled]}, Weakest station: ${weakness.n||'unknown'}
+Return ONLY a JSON array: [{"icon":"emoji","title":"short bold title","tip":"2 sentence actionable advice"}]`;
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:[{role:"user",content:prompt}]})});
+    const d=await r.json();
+    let txt=d.content?.map(c=>c.text||'').join('')||'';
+    txt=txt.replace(/```json|```/g,'').trim();
+    const tips=JSON.parse(txt);
+    document.getElementById('ai-tips').innerHTML=tips.map(t=>`<div class="ai-tip"><div class="ai-tip-icon">${t.icon}</div><div class="ai-tip-text"><strong>${t.title}:</strong> ${t.tip}</div></div>`).join('');
+  }catch(e){
+    const fallback=[
+      {icon:'⚡',title:'Pacing',tip:`For ${target}min, start runs 8% slower than goal pace. Energy conservation in early stations pays dividends in wall balls.`},
+      {icon:'🛷',title:'Sled Strategy',tip:'Drive from your hips, not arms. Keep chest low and push through each step. Most athletes lose 90+ seconds here.'},
+      {icon:'🫁',title:'Breathing',tip:'3 deep diaphragm breaths before every work station. Reset your heart rate before the clock starts on each exercise.'},
+      {icon:'🏁',title:'Final Push',tip:'Bank 15% energy for sandbag lunges and wall balls. These two stations decide sub-60 vs 62+ finishes.'},
+    ];
+    document.getElementById('ai-tips').innerHTML=fallback.map(t=>`<div class="ai-tip"><div class="ai-tip-icon">${t.icon}</div><div class="ai-tip-text"><strong>${t.title}:</strong> ${t.tip}</div></div>`).join('');
+  }finally{
+    document.getElementById('ai-loading').style.display='none';
+    document.getElementById('ai-tips').style.display='block';
+  }
+}
+
+function saveToPlanLog(){
+  const target=document.getElementById('p-target').value;
+  const cat=document.getElementById('p-cat').value;
+  const race={id:Date.now(),city:'Strategy Plan',time:fmt(parseInt(target)),cat:cat[0].toUpperCase()+cat.slice(1),date:new Date().toLocaleDateString('en-GB'),place:'',notes:'From Race Planner',splits:APP.currentSplits.map(s=>s.time),planned:true};
+  APP.races.unshift(race);save('races',APP.races);
+  notify('Plan saved to race log! 💾');
+}
+
+// ============================================================
+//  RACE LOG
+// ============================================================
+function toggleAddRace(){const p=document.getElementById('add-race-panel');p.style.display=p.style.display==='none'?'block':'none';if(p.style.display==='block'){document.getElementById('lr-date').value=new Date().toISOString().split('T')[0];}}
+function addRace(){
+  const city=document.getElementById('lr-city').value.trim();
+  const time=document.getElementById('lr-time').value.trim();
+  if(!city||!time){notify('Fill in city and time','var(--red)');return;}
+  const race={id:Date.now(),city,time,cat:document.getElementById('lr-cat').value,date:document.getElementById('lr-date').value||new Date().toLocaleDateString('en-GB'),place:document.getElementById('lr-place').value,notes:document.getElementById('lr-notes').value,splits:APP.currentSplits.length?APP.currentSplits.map(s=>s.time):null};
+  APP.races.unshift(race);save('races',APP.races);
+  document.getElementById('add-race-panel').style.display='none';
+  renderLog();renderDash();
+  notify('Race logged! 🏁');
+}
+function clearLog(){if(confirm('Delete all race entries?')){APP.races=[];save('races',APP.races);renderLog();renderDash();}}
+function shareRaceByIndex(i){ const r=APP.races[i]; if(r) shareRaceResult(r); }
+function downloadCardByIndex(i){ const r=APP.races[i]; if(r) generateShareCard(r); }
+function renderLog(){
+  const grid=document.getElementById('race-log-grid');
+  if(!APP.races.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1">No races logged — start your history!</div>';return;}
+  const best=Math.min(...APP.races.filter(r=>parseT(r.time)).map(r=>parseT(r.time)));
+  grid.innerHTML=APP.races.map((r,i)=>{
+    const isPR=parseT(r.time)===best&&APP.races.length>1;
+    const bars=r.splits?r.splits.map((t,idx)=>{
+      const mx=Math.max(...r.splits);const h=Math.round((t/mx)*100);
+      return `<div class="split-mini" style="flex:1;height:28px;background:var(--void);border-radius:1px;position:relative;overflow:hidden"><div style="position:absolute;bottom:0;left:0;right:0;height:${h}%;background:${idx%2===0?'var(--blue)':'var(--acid)'};opacity:.5"></div></div>`;
+    }).join(''):'';
+    return `<div class="race-entry">
+      <div style="font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:1px">${r.date}</div>
+      <div class="re-city">${r.city.toUpperCase()}</div>
+      <div class="re-time">${r.time}</div>
+      <div class="re-meta">
+        <div class="re-badge">${r.cat}</div>
+        ${r.place?`<div class="re-badge">Pl. ${r.place}</div>`:''}
+        ${isPR?'<div class="re-badge pr">⚡ PR</div>':''}
+        ${r.planned?'<div class="re-badge" style="color:var(--blue);border-color:rgba(77,158,255,.25)">Planned</div>':''}
+      </div>
+      ${r.notes?`<div style="font-size:12px;color:var(--muted);margin-top:8px;font-style:italic">"${r.notes}"</div>`:''}
+      ${bars?`<div style="display:flex;gap:3px;margin-top:12px">${bars}</div>`:''}
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-ghost btn-sm" onclick="shareRaceByIndex(${i})" style="font-size:10px">📤 SHARE</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadCardByIndex(${i})" style="font-size:10px">🖼 CARD</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+//  DEVICES & APPS
+// ============================================================
+const WATCHES=[
+  {id:'garmin',name:'Garmin',type:'Smartwatch',icon:'⌚',color:'#00A3E0',desc:'Connect via Garmin Connect API. Syncs VO2 Max, HR, pace, splits.'},
+  {id:'apple',name:'Apple Watch',type:'Smartwatch',icon:'🍎',color:'#555',desc:'Connect via Apple Health (iOS only). Syncs workouts, heart rate, cadence.'},
+  {id:'whoop',name:'Whoop 4.0',type:'Recovery Band',icon:'💚',color:'#00FF87',desc:'Connect via Whoop API. Syncs strain, HRV, recovery scores.'},
+  {id:'polar',name:'Polar',type:'Smartwatch',icon:'🔴',color:'#D90B28',desc:'Polar Flow API. Syncs running power, cadence, HR zones.'},
+  {id:'suunto',name:'Suunto',type:'Smartwatch',icon:'🔵',color:'#003366',desc:'Suunto App API. Syncs GPS routes and detailed HR data.'},
+  {id:'coros',name:'Coros',type:'Smartwatch',icon:'⭕',color:'#FF6B00',desc:'Coros API. Accurate GPS and advanced running dynamics.'},
+  {id:'samsung',name:'Samsung Galaxy',type:'Smartwatch',icon:'📟',color:'#1428A0',desc:'Samsung Health API. Syncs workouts, sleep, body composition.'},
+  {id:'fitbit',name:'Fitbit',type:'Activity Tracker',icon:'💙',color:'#00B0B9',desc:'Fitbit API. Syncs steps, HR zones, active minutes.'},
+];
+const FITNESSAPPS=[
+  {id:'strava',name:'Strava',type:'Training App',icon:'🏃',color:'#FC4C02',desc:'OAuth sync. Imports all activities, segments, PRs and heart rate data.'},
+  {id:'trainingpeaks',name:'TrainingPeaks',type:'Coaching Platform',icon:'📈',color:'#2196F3',desc:'Import structured training plans and power/HR analytics.'},
+  {id:'zwift',name:'Zwift',type:'Indoor Training',icon:'🚴',color:'#FF5733',desc:'Sync indoor cycling and running workouts with power data.'},
+  {id:'myfitnesspal',name:'MyFitnessPal',type:'Nutrition',icon:'🥗',color:'#00A6B4',desc:'Nutrition tracking API. Correlate calorie intake with race performance.'},
+  {id:'komoot',name:'Komoot',type:'Route Planning',icon:'🗺️',color:'#6AB04C',desc:'Import outdoor run routes and elevation data.'},
+  {id:'nike',name:'Nike Run Club',type:'Running App',icon:'👟',color:'#FF6600',desc:'Import Nike Run Club activities and guided run data.'},
+];
+
+function renderDevices(){
+  document.getElementById('watches-grid').innerHTML=WATCHES.map(d=>deviceCard(d)).join('');
+  document.getElementById('apps-grid').innerHTML=FITNESSAPPS.map(d=>deviceCard(d)).join('');
+  renderSyncLog();
+  updateDeviceBadge();
+}
+function deviceCard(d){
+  const connected=!!APP.devices[d.id];
+  return `<div class="device-card ${connected?'connected':''}" onclick="openDeviceModal('${d.id}')">
+    <div class="device-status">${connected?'✅':''}</div>
+    <div class="device-icon">${d.icon}</div>
+    <div class="device-name">${d.name}</div>
+    <div class="device-type">${d.type}</div>
+    ${connected?`<div class="device-last-sync">Last sync: ${APP.devices[d.id].lastSync}</div>`:''}
+    <button class="btn btn-sm connect-btn ${connected?'btn-danger':'btn-acid'}">${connected?'DISCONNECT':'CONNECT'}</button>
+  </div>`;
+}
+function openDeviceModal(id){
+  const all=[...WATCHES,...FITNESSAPPS];
+  const d=all.find(x=>x.id===id);
+  const connected=!!APP.devices[id];
+  document.getElementById('deviceModalTitle').textContent=d.name.toUpperCase();
+  document.getElementById('deviceModalBody').innerHTML=`
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:56px;margin-bottom:8px">${d.icon}</div>
+      <div style="font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">${d.type}</div>
+    </div>
+    <div class="data-banner mb-16"><div class="data-banner-icon">ℹ️</div><p>${d.desc} This demo simulates the connection — real integration requires OAuth.</p></div>
+    <div class="panel-sm mb-16">
+      <div style="font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">What syncs</div>
+      ${['Heart Rate & HR Zones','GPS Pace & Splits','VO₂ Max & Fitness Level','Recovery Score','Training Load','Race History'].map(i=>`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--dim)"><span style="color:var(--green)">✓</span> ${i}</div>`).join('')}
+    </div>
+    ${connected
+      ?`<button class="btn btn-danger" style="width:100%" onclick="disconnectDevice('${id}')">DISCONNECT ${d.name.toUpperCase()}</button>`
+      :`<button class="btn btn-acid" style="width:100%" onclick="connectDevice('${id}')">CONNECT ${d.name.toUpperCase()} (DEMO)</button>`
+    }`;
+  showModal('deviceModal');
+}
+function connectDevice(id){
+  const now=new Date().toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  APP.devices[id]={connected:true,lastSync:now};save('devices',APP.devices);
+  const syncEntry={id:Date.now(),device:id,time:now,records:Math.floor(Math.random()*40)+5};
+  const log=JSON.parse(localStorage.getItem('station8-synclog')||'[]');log.unshift(syncEntry);
+  localStorage.setItem('station8-synclog',JSON.stringify(log.slice(0,20)));
+  closeModal('deviceModal');renderDevices();
+  notify(`${id.charAt(0).toUpperCase()+id.slice(1)} connected! ✅`,'var(--green)');
+}
+function disconnectDevice(id){
+  delete APP.devices[id];save('devices',APP.devices);
+  closeModal('deviceModal');renderDevices();notify('Device disconnected');
+}
+function updateDeviceBadge(){
+  const n=Object.keys(APP.devices).length;
+  ['device-badge','drawer-device-badge'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=n;});
+  const dd=document.getElementById('d-devices');if(dd)dd.textContent=n;
+}
+function renderSyncLog(){
+  const log=JSON.parse(localStorage.getItem('station8-synclog')||'[]');
+  const el=document.getElementById('sync-log');
+  if(!log.length){el.innerHTML='<div class="empty">No sync activity yet</div>';return;}
+  el.innerHTML=log.map(l=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;gap:12px;align-items:center">
+      <span style="font-size:20px">${[...WATCHES,...FITNESSAPPS].find(d=>d.id===l.device)?.icon||'⌚'}</span>
+      <div><div style="font-size:13px;font-weight:500">${l.device.charAt(0).toUpperCase()+l.device.slice(1)}</div><div style="font-family:var(--font-m);font-size:10px;color:var(--muted)">${l.time}</div></div>
+    </div>
+    <div style="font-family:var(--font-m);font-size:11px;color:var(--green)">${l.records} records synced</div>
+  </div>`).join('');
+}
+
+// ============================================================
+//  EVENTS
+// ============================================================
+const HYROX_EVENTS=[
+  {id:1,title:'HYROX London',city:'London',country:'United Kingdom',region:'UK',lat:51.5,lng:-0.1,date:'2026-03-28',cats:['open','pro','doubles'],capacity:3000,spots:420,price:'€89'},
+  {id:2,title:'HYROX Manchester',city:'Manchester',country:'United Kingdom',region:'UK',lat:53.5,lng:-2.2,date:'2026-04-05',cats:['open','doubles'],capacity:2500,spots:0,price:'€85'},
+  {id:3,title:'HYROX Berlin',city:'Berlin',country:'Germany',region:'Europe',lat:52.5,lng:13.4,date:'2026-04-12',cats:['open','pro','doubles'],capacity:4000,spots:800,price:'€95'},
+  {id:4,title:'HYROX NYC',city:'New York',country:'USA',region:'North America',lat:40.7,lng:-74.0,date:'2026-04-19',cats:['open','pro'],capacity:3500,spots:1200,price:'$99'},
+  {id:5,title:'HYROX Hamburg',city:'Hamburg',country:'Germany',region:'Europe',lat:53.5,lng:10.0,date:'2026-05-03',cats:['open','pro','doubles'],capacity:4500,spots:650,price:'€90'},
+  {id:6,title:'HYROX Dubai',city:'Dubai',country:'UAE',region:'Middle East',lat:25.2,lng:55.3,date:'2026-05-10',cats:['open','doubles'],capacity:2000,spots:340,price:'AED 350'},
+  {id:7,title:'HYROX Sydney',city:'Sydney',country:'Australia',region:'Asia Pacific',lat:-33.9,lng:151.2,date:'2026-05-17',cats:['open','pro'],capacity:2800,spots:900,price:'A$129'},
+  {id:8,title:'HYROX Chicago',city:'Chicago',country:'USA',region:'North America',lat:41.9,lng:-87.6,date:'2026-06-07',cats:['open','pro','doubles'],capacity:3200,spots:1500,price:'$95'},
+  {id:9,title:'HYROX Paris',city:'Paris',country:'France',region:'Europe',lat:48.9,lng:2.3,date:'2026-06-14',cats:['open','doubles'],capacity:3000,spots:220,price:'€92'},
+  {id:10,title:'HYROX Amsterdam',city:'Amsterdam',country:'Netherlands',region:'Europe',lat:52.4,lng:4.9,date:'2026-06-21',cats:['open','pro'],capacity:2500,spots:780,price:'€88'},
+  {id:11,title:'HYROX Singapore',city:'Singapore',country:'Singapore',region:'Asia Pacific',lat:1.35,lng:103.8,date:'2026-07-05',cats:['open','doubles'],capacity:2000,spots:400,price:'S$149'},
+  {id:12,title:'HYROX Miami',city:'Miami',country:'USA',region:'North America',lat:25.8,lng:-80.2,date:'2026-07-12',cats:['open','pro'],capacity:2500,spots:800,price:'$99'},
+  {id:13,title:'HYROX Munich',city:'Munich',country:'Germany',region:'Europe',lat:48.1,lng:11.6,date:'2026-08-02',cats:['open','pro','doubles'],capacity:4000,spots:1100,price:'€94'},
+  {id:14,title:'HYROX Stockholm',city:'Stockholm',country:'Sweden',region:'Europe',lat:59.3,lng:18.1,date:'2026-08-16',cats:['open'],capacity:2000,spots:650,price:'SEK 950'},
+  {id:15,title:'HYROX Tokyo',city:'Tokyo',country:'Japan',region:'Asia Pacific',lat:35.7,lng:139.7,date:'2026-09-06',cats:['open','doubles'],capacity:2500,spots:1200,price:'¥14,000'},
+  {id:16,title:'HYROX Edinburgh',city:'Edinburgh',country:'United Kingdom',region:'UK',lat:55.95,lng:-3.2,date:'2026-09-13',cats:['open'],capacity:1800,spots:300,price:'£79'},
+  {id:17,title:'HYROX Lisbon',city:'Lisbon',country:'Portugal',region:'Europe',lat:38.7,lng:-9.1,date:'2026-09-27',cats:['open','pro'],capacity:2200,spots:900,price:'€82'},
+  {id:18,title:'HYROX Toronto',city:'Toronto',country:'Canada',region:'North America',lat:43.7,lng:-79.4,date:'2026-10-04',cats:['open','doubles'],capacity:2500,spots:700,price:'C$119'},
+  {id:19,title:'HYROX Zurich',city:'Zurich',country:'Switzerland',region:'Europe',lat:47.4,lng:8.5,date:'2026-10-11',cats:['open','pro'],capacity:2000,spots:500,price:'CHF 120'},
+  {id:20,title:'HYROX Melbourne',city:'Melbourne',country:'Australia',region:'Asia Pacific',lat:-37.8,lng:144.9,date:'2026-10-25',cats:['open'],capacity:2200,spots:800,price:'A$125'},
+  {id:21,title:'HYROX World Championships',city:'Nice',country:'France',region:'Europe',lat:43.7,lng:7.3,date:'2026-11-07',cats:['open','pro','doubles'],capacity:10000,spots:2500,price:'€149'},
+  {id:22,title:'HYROX Los Angeles',city:'Los Angeles',country:'USA',region:'North America',lat:34.1,lng:-118.2,date:'2026-11-22',cats:['open','pro'],capacity:3000,spots:1300,price:'$99'},
+];
+
+function renderEvents(){
+  filterEvents();
+  document.getElementById('d-next').textContent=HYROX_EVENTS.find(e=>new Date(e.date)>new Date())?.city||'—';
+}
+function filterEvents(){
+  const q=(document.getElementById('evt-search').value||'').toLowerCase();
+  const region=document.getElementById('evt-region').value;
+  const month=document.getElementById('evt-month').value;
+  const cat=document.getElementById('evt-cat').value;
+  let evts=HYROX_EVENTS.filter(e=>{
+    const d=new Date(e.date);
+    if(q&&!e.city.toLowerCase().includes(q)&&!e.country.toLowerCase().includes(q)&&!e.title.toLowerCase().includes(q)) return false;
+    if(region&&e.region!==region) return false;
+    if(month&&d.getMonth()+1!==parseInt(month)) return false;
+    if(cat&&!e.cats.includes(cat)) return false;
+    return true;
+  }).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  document.getElementById('event-count').textContent=`Showing ${evts.length} event${evts.length!==1?'s':''}`;
+  const list=document.getElementById('events-list');
+  if(!evts.length){list.innerHTML='<div class="no-events">No events match your filters</div>';return;}
+  list.innerHTML=evts.map(e=>{
+    const d=new Date(e.date);
+    const sold=e.spots===0;
+    const pctLeft=Math.round((e.spots/e.capacity)*100);
+    const tags=e.cats.map(c=>`<span class="etag etag-${c}">${c.toUpperCase()}</span>`).join('');
+    return `<div class="event-card" onclick="openEventModal(${e.id})">
+      <div class="event-date-box">
+        <div class="event-day">${d.getDate()}</div>
+        <div class="event-month">${d.toLocaleString('en',{month:'short'})} ${d.getFullYear()}</div>
+      </div>
+      <div>
+        <div class="event-title">${e.title}</div>
+        <div class="event-location">📍 ${e.city}, ${e.country}</div>
+        <div class="event-tags">${tags}${sold?'<span class="etag etag-sold">SOLD OUT</span>':''}</div>
+      </div>
+      <div class="event-action">
+        <div style="font-family:var(--font-m);font-size:11px;color:var(--acid);font-weight:600">${e.price}</div>
+        <div style="font-family:var(--font-m);font-size:9px;color:${sold?'var(--red)':pctLeft<20?'var(--orange)':'var(--muted)'};letter-spacing:.5px">${sold?'SOLD OUT':`${e.spots} spots left`}</div>
+        <button class="btn btn-sm ${sold?'btn-ghost':'btn-acid'}" style="margin-top:4px">${sold?'WAITLIST':'REGISTER'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function nearMeEvents(){
+  notify('📍 Location feature requires geolocation permission in production. Filtering to UK events as demo.','var(--blue)');
+  document.getElementById('evt-region').value='UK';filterEvents();
+}
+function openEventModal(id){
+  const e=HYROX_EVENTS.find(x=>x.id===id);
+  const d=new Date(e.date);
+  const sold=e.spots===0;
+  document.getElementById('eventModalTitle').textContent=e.title.toUpperCase();
+  document.getElementById('eventModalBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="panel-sm"><div class="stat-label">Date</div><div style="font-family:var(--font-d);font-size:28px;color:var(--acid);margin-top:4px">${d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div></div>
+      <div class="panel-sm"><div class="stat-label">Price</div><div style="font-family:var(--font-d);font-size:28px;color:var(--text);margin-top:4px">${e.price}</div></div>
+    </div>
+    <div class="panel-sm mb-16">
+      <div class="stat-label mb-16">Location</div>
+      <div style="font-size:14px;color:var(--text)">📍 ${e.city}, ${e.country}</div>
+      <div style="font-family:var(--font-m);font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:.5px">Region: ${e.region}</div>
+    </div>
+    <div class="panel-sm mb-16">
+      <div class="stat-label mb-16">Availability</div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:11px;color:var(--muted);margin-bottom:8px"><span>${e.spots} / ${e.capacity} spots remaining</span><span>${Math.round((e.spots/e.capacity)*100)}%</span></div>
+      <div style="background:var(--mid);height:6px;border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.round((e.spots/e.capacity)*100)}%;background:${e.spots===0?'var(--red)':e.spots/e.capacity<.2?'var(--orange)':'var(--green)'};border-radius:3px"></div></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${e.cats.map(c=>`<span class="etag etag-${c}">${c.toUpperCase()}</span>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button class="btn btn-acid" onclick="registerEvent(${e.id})">${sold?'JOIN WAITLIST':'REGISTER (DEMO)'}</button>
+      <button class="btn btn-outline" onclick="buildPlanForEvent(${e.id})">BUILD STRATEGY</button>
+    </div>`;
+  showModal('eventModal');
+}
+function registerEvent(id){
+  closeModal('eventModal');
+  notify('Registration flow would open Hyrox.com in production. Demo only! 🏁','var(--acid)');
+}
+function buildPlanForEvent(id){
+  closeModal('eventModal');
+  goPage('planner',document.querySelector('[onclick*=planner]'));
+  notify('Plan your race strategy below! 🎯');
+}
+
+// ============================================================
+//  COMMUNITY
+// ============================================================
+const SEED_POSTS=[
+  {id:1,author:'Sarah K.',avatar:'SK',city:'London',time:'2h ago',type:'result',text:'Just ran HYROX London — new PB! 🏁 The strategy from Station8.AI completely changed how I paced my sled push. Negative split on the last 3 runs.',achievement:{time:'59:44',event:'HYROX London'},splits:[5.2,3.8,5.0,3.5,5.3,3.2,4.9,5.1,5.4,3.9,5.1,2.8,5.0,4.9,5.2,5.8],likes:47,comments:12,liked:false},
+  {id:2,author:'Marcus R.',avatar:'MR',city:'New York',time:'5h ago',type:'tip',text:'Pro tip for burpee broad jumps: 3 deep breaths before starting, stay controlled on the landing, and count in sets of 10. Lost 2min here in my last race by going out too fast.',likes:31,comments:8,liked:false},
+  {id:3,author:'Team SweatCo',avatar:'TS',city:'Berlin',time:'1d ago',type:'milestone',text:'Our doubles team just broke 55 minutes for the first time! 🔥 HYROX Berlin crushed. Thanks to everyone in this community for the sled pull technique tips.',achievement:{time:'54:38',event:'HYROX Berlin (Doubles)'},likes:89,comments:24,liked:false},
+  {id:4,author:'Jess T.',avatar:'JT',city:'Sydney',time:'1d ago',type:'tip',text:'Wall balls are a mental game. Break 100 reps into 4 sets of 25. Rest 8 seconds between sets. You\'ll finish faster than going until failure. Trust the data.',likes:56,comments:15,liked:false},
+  {id:5,author:'Raj P.',avatar:'RP',city:'Singapore',time:'2d ago',type:'result',text:'First ever Hyrox done ✅ 86:12 — not fast but I\'m proud. The Station8.AI planner kept me sane knowing what was coming at every station. Already planning my next one.',achievement:{time:'86:12',event:'HYROX Singapore (First Race)'},likes:112,comments:33,liked:false},
+];
+const TRENDING=['#slashyourPR','#sub60','#hyroxlondon2026','#slushie','#wallballs','#neversliponsled'];
+const ACTIVE_ATHLETES=[
+  {name:'Sarah K.',city:'London',stat:'59:44 PR',following:false},
+  {name:'Dan H.',city:'Hamburg',stat:'52:18 PR',following:false},
+  {name:'Emma S.',city:'London',stat:'53:44 PR',following:false},
+  {name:'Tom B.',city:'Berlin',stat:'64:05 PR',following:true},
+];
+
+function renderCommunity(){
+  // Merge seed + user posts
+  const all=[...APP.communityPosts,...SEED_POSTS].sort((a,b)=>b.id-a.id);
+  document.getElementById('community-feed').innerHTML=all.map(p=>renderPost(p)).join('');
+  document.getElementById('trending-list').innerHTML=TRENDING.map((t,i)=>`<div class="trending-item"><div class="trending-rank">${i+1}</div><div><div class="trending-tag">${t}</div></div><div class="trending-count">${Math.floor(Math.random()*200)+30} posts</div></div>`).join('');
+  document.getElementById('active-athletes').innerHTML=ACTIVE_ATHLETES.map((a,i)=>`<div class="active-user">
+    <div class="avatar" style="background:hsl(${i*60+120},50%,25%)">${a.name.split(' ').map(x=>x[0]).join('')}</div>
+    <div class="au-info"><div class="au-name">${a.name}</div><div class="au-stat">${a.city} · ${a.stat}</div></div>
+    <button class="follow-btn ${APP.following.includes(a.name)?'following':''}" onclick="toggleFollow('${a.name}',this)">${APP.following.includes(a.name)?'Following':'Follow'}</button>
+  </div>`).join('');
+  // Composer avatar
+  if(APP.user){const av=document.getElementById('composer-avatar');av.textContent=APP.user.name.split(' ').map(x=>x[0]).join('');av.style.background=APP.user.color||'var(--mid)';}
+}
+function renderPost(p){
+  const typeColors={result:'var(--acid)',tip:'var(--blue)',milestone:'var(--orange)'};
+  const tc=typeColors[p.type]||'var(--muted)';
+  const ach=p.achievement?`<div class="post-achievement"><div class="ach-icon">🏁</div><div><div class="ach-time">${p.achievement.time}</div><div class="ach-event">${p.achievement.event}</div></div></div>`:'';
+  const splits=p.splits?`<div class="post-splits-mini">${p.splits.map((t,i)=>{const mx=Math.max(...p.splits);const h=Math.round((t/mx)*100);return `<div class="psm-bar"><div class="psm-fill" style="height:${h}%;background:${i%2===0?'var(--blue)':'var(--acid)'};opacity:.5"></div></div>`;}).join('')}</div>`:'';
+  return `<div class="post-card" id="post-${p.id}">
+    <div class="post-hdr">
+      <div class="avatar" style="background:hsl(${p.id*47+90},40%,22%)">${p.avatar}</div>
+      <div class="post-meta">
+        <div class="post-author">${p.author} <span style="font-family:var(--font-m);font-size:9px;color:var(--muted);font-weight:400">· ${p.city}</span></div>
+        <div class="post-time">${p.time}</div>
+      </div>
+      <span class="post-type-badge" style="background:${tc}20;color:${tc};border:1px solid ${tc}40">${p.type.toUpperCase()}</span>
+    </div>
+    <div class="post-body">
+      <div class="post-text">${p.text}</div>
+      ${ach}${splits}
+    </div>
+    <div class="post-footer">
+      <button class="react-btn ${p.liked?'liked':''}" onclick="likePost(${p.id},this)">❤️ <span class="like-count">${p.likes}</span></button>
+      <button class="react-btn">💬 ${p.comments||0}</button>
+      <button class="react-btn" onclick="sharePost('${p.author}')">↗️ Share</button>
+    </div>
+  </div>`;
+}
+function setPostType(t){APP.currentPostType=t;const ind=document.getElementById('post-type-indicator');ind.style.display='block';const icons={result:'🏁',tip:'💡',milestone:'🏆'};ind.textContent=`${icons[t]} Posting as: ${t.toUpperCase()}`;}
+function submitPost(){
+  const text=document.getElementById('composer-text').value.trim();
+  if(!text){notify('Write something first!','var(--orange)');return;}
+  const user=APP.user||{name:'You',color:'var(--mid)'};
+  const initials=user.name.split(' ').map(x=>x[0]).join('');
+  const post={id:Date.now(),author:user.name,avatar:initials,city:user.city||'',time:'Just now',type:APP.currentPostType,text,likes:0,comments:0,liked:false};
+  if(APP.currentSplits.length&&APP.currentPostType==='result'){post.splits=APP.currentSplits.map(s=>s.time);}
+  APP.communityPosts.unshift(post);save('posts',APP.communityPosts);
+  document.getElementById('composer-text').value='';
+  document.getElementById('post-type-indicator').style.display='none';
+  renderCommunity();
+  document.getElementById('community-badge').textContent='';
+  notify('Posted! 🚀');
+}
+function likePost(id,btn){
+  const countEl=btn.querySelector('.like-count');
+  const seed=SEED_POSTS.find(p=>p.id===id);
+  const user=APP.communityPosts.find(p=>p.id===id);
+  const post=seed||user;
+  if(post){
+    post.liked=!post.liked;
+    post.likes+=post.liked?1:-1;
+    countEl.textContent=post.likes;
+    btn.classList.toggle('liked',post.liked);
+    if(user) save('posts',APP.communityPosts);
+  }
+}
+function toggleFollow(name,btn){
+  const idx=APP.following.indexOf(name);
+  if(idx===-1){APP.following.push(name);btn.textContent='Following';btn.classList.add('following');}
+  else{APP.following.splice(idx,1);btn.textContent='Follow';btn.classList.remove('following');}
+  save('following',APP.following);
+}
+// ============================================================
+//  SOCIAL SHARING — Instagram, TikTok, Facebook, Strava, X
+// ============================================================
+const SOCIAL_SHARE_URL = 'https://station8.ai';
+
+function sharePost(author, postId) {
+  openShareModal({ title:'Share Post', text:`Check out this Hyrox result from ${author} on Station8.AI 🏁`, url: SOCIAL_SHARE_URL });
+}
+
+function openShareModal(opts) {
+  if(opts.raceData) _currentShareCardData = opts.raceData;
+  const existing = document.getElementById('shareModalOverlay');
+  if(existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'shareModalOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:5000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)';
+  overlay.innerHTML = `
+    <div style="background:var(--panel);border:1px solid var(--border);width:90%;max-width:480px;border-radius:4px;padding:28px;position:relative">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-family:var(--font-d);font-size:26px;letter-spacing:2px">SHARE</div>
+        <button onclick="document.getElementById('shareModalOverlay').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:3px">✕</button>
+      </div>
+      <div style="background:var(--void);border:1px solid var(--border);padding:14px;border-radius:3px;margin-bottom:20px;font-size:13px;color:var(--dim);line-height:1.6">${opts.text}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <button onclick="shareTo('instagram','${encodeURIComponent(opts.text)}','${encodeURIComponent(opts.url)}')" style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366);color:#fff;border:none;padding:12px 16px;border-radius:3px;cursor:pointer;font-family:var(--font-m);font-size:10px;letter-spacing:1px;text-transform:uppercase">
+          <span style="font-size:18px">📸</span> Instagram
+        </button>
+        <button onclick="shareTo('tiktok','${encodeURIComponent(opts.text)}','${encodeURIComponent(opts.url)}')" style="display:flex;align-items:center;gap:10px;background:#010101;color:#fff;border:1px solid #333;padding:12px 16px;border-radius:3px;cursor:pointer;font-family:var(--font-m);font-size:10px;letter-spacing:1px;text-transform:uppercase">
+          <span style="font-size:18px">🎵</span> TikTok
+        </button>
+        <button onclick="shareTo('facebook','${encodeURIComponent(opts.text)}','${encodeURIComponent(opts.url)}')" style="display:flex;align-items:center;gap:10px;background:#1877f2;color:#fff;border:none;padding:12px 16px;border-radius:3px;cursor:pointer;font-family:var(--font-m);font-size:10px;letter-spacing:1px;text-transform:uppercase">
+          <span style="font-size:18px">👥</span> Facebook
+        </button>
+        <button onclick="shareTo('strava','${encodeURIComponent(opts.text)}','${encodeURIComponent(opts.url)}')" style="display:flex;align-items:center;gap:10px;background:#FC4C02;color:#fff;border:none;padding:12px 16px;border-radius:3px;cursor:pointer;font-family:var(--font-m);font-size:10px;letter-spacing:1px;text-transform:uppercase">
+          <span style="font-size:18px">🏃</span> Strava
+        </button>
+        <button onclick="shareTo('twitter','${encodeURIComponent(opts.text)}','${encodeURIComponent(opts.url)}')" style="display:flex;align-items:center;gap:10px;background:#1da1f2;color:#fff;border:none;padding:12px 16px;border-radius:3px;cursor:pointer;font-family:var(--font-m);font-size:10px;letter-spacing:1px;text-transform:uppercase">
+          <span style="font-size:18px">🐦</span> X / Twitter
+        </button>
+        <button onclick="copyShareLink('${encodeURIComponent(opts.url)}')" style="display:flex;align-items:center;gap:10px;background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:12px 16px;border-radius:3px;cursor:pointer;font-family:var(--font-m);font-size:10px;letter-spacing:1px;text-transform:uppercase">
+          <span style="font-size:18px">🔗</span> Copy Link
+        </button>
+      </div>
+      ${opts.raceData ? `<div style="margin-top:16px"><button onclick="downloadCurrentShareCard()" style="width:100%;background:var(--acid);color:var(--bg);border:none;padding:12px;border-radius:3px;cursor:pointer;font-family:var(--font-d);font-size:18px;letter-spacing:2px">⬇ DOWNLOAD RESULT CARD</button><div style="font-family:var(--font-m);font-size:9px;color:var(--muted);text-align:center;margin-top:8px;letter-spacing:1px">SAVE AS PNG · SHARE TO ANY PLATFORM</div></div>` : ''}
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
+}
+
+function shareTo(platform, text, url) {
+  const decoded_text = decodeURIComponent(text);
+  const decoded_url = decodeURIComponent(url);
+  const encoded_text = encodeURIComponent(decoded_text);
+  const encoded_url = encodeURIComponent(decoded_url);
+  const platforms = {
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encoded_url}&quote=${encoded_text}`,
+    twitter: `https://twitter.com/intent/tweet?text=${encoded_text}&url=${encoded_url}&hashtags=Hyrox,Station8.AI`,
+    strava: `https://www.strava.com/`,
+  };
+  if(platform === 'instagram') {
+    copyShareLink(url);
+    notify('Link copied! Open Instagram and paste in your Story or bio 📸', 'var(--orange)');
+    document.getElementById('shareModalOverlay')?.remove();
+    return;
+  }
+  if(platform === 'tiktok') {
+    copyShareLink(url);
+    notify('Link copied! Paste it in your TikTok bio or video description 🎵', 'var(--blue)');
+    document.getElementById('shareModalOverlay')?.remove();
+    return;
+  }
+  if(platform === 'strava' && APP.devices['strava']) {
+    notify('Posting to Strava activity feed... (requires OAuth in production) 🏃', 'var(--orange)');
+    document.getElementById('shareModalOverlay')?.remove();
+    return;
+  }
+  if(platform === 'strava') {
+    notify('Connect Strava in Devices & Apps first to share directly 🏃', 'var(--muted)');
+    return;
+  }
+  window.open(platforms[platform], '_blank', 'width=600,height=500');
+  document.getElementById('shareModalOverlay')?.remove();
+  notify('Sharing... 🚀');
+}
+
+// Store current share card data for the download button
+let _currentShareCardData = null;
+function downloadCurrentShareCard() {
+  if(_currentShareCardData) generateShareCard(_currentShareCardData);
+  else notify('No race data to download', 'var(--orange)');
+}
+
+function copyShareLink(url) {
+  const decoded = decodeURIComponent(url);
+  navigator.clipboard.writeText(decoded).catch(() => {});
+  notify('Link copied to clipboard! 🔗', 'var(--green)');
+}
+
+// ── RACE RESULT CARD GENERATOR (Canvas API) ──────────────────
+function generateShareCard(raceData) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1080; canvas.height = 1080;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#070709';
+  ctx.fillRect(0, 0, 1080, 1080);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(200,240,58,0.04)';
+  ctx.lineWidth = 1;
+  for(let x = 0; x < 1080; x += 54) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,1080); ctx.stroke(); }
+  for(let y = 0; y < 1080; y += 54) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(1080,y); ctx.stroke(); }
+
+  // Accent bar top
+  ctx.fillStyle = '#c8f03a';
+  ctx.fillRect(0, 0, 1080, 6);
+
+  // Logo
+  ctx.font = 'bold 52px Arial';
+  ctx.fillStyle = '#c8f03a';
+  ctx.letterSpacing = '6px';
+  ctx.fillText('STATION8', 72, 100);
+
+  ctx.font = '22px Arial';
+  ctx.fillStyle = '#4a4a55';
+  ctx.fillText('/ HYROX RACE INTELLIGENCE', 72, 132);
+
+  // Divider
+  ctx.fillStyle = '#1c1c22';
+  ctx.fillRect(72, 155, 936, 1);
+
+  // City / event name
+  ctx.font = 'bold 80px Arial';
+  ctx.fillStyle = '#e6e6f0';
+  ctx.fillText((raceData.city || 'MY RACE').toUpperCase(), 72, 270);
+
+  // Date
+  ctx.font = '24px monospace';
+  ctx.fillStyle = '#4a4a55';
+  ctx.fillText(raceData.date || new Date().toLocaleDateString('en-GB'), 72, 310);
+
+  // Time — big
+  ctx.font = 'bold 180px Arial';
+  ctx.fillStyle = '#c8f03a';
+  ctx.fillText(raceData.time || '--:--', 72, 510);
+
+  // Category badge
+  ctx.fillStyle = 'rgba(200,240,58,0.1)';
+  ctx.strokeStyle = 'rgba(200,240,58,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(72, 540, 180, 40, 3); ctx.fill(); ctx.stroke();
+  ctx.font = 'bold 20px monospace';
+  ctx.fillStyle = '#c8f03a';
+  ctx.fillText((raceData.cat || 'OPEN').toUpperCase(), 96, 566);
+
+  // Splits mini chart
+  if(raceData.splits && raceData.splits.length) {
+    const chartX = 72, chartY = 620, chartW = 936, chartH = 160;
+    const max = Math.max(...raceData.splits);
+    const barW = Math.floor(chartW / raceData.splits.length) - 4;
+    raceData.splits.forEach((t, i) => {
+      const h = Math.round((t / max) * chartH);
+      const x = chartX + i * (barW + 4);
+      const y = chartY + chartH - h;
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(77,158,255,0.6)' : 'rgba(200,240,58,0.6)';
+      ctx.fillRect(x, y, barW, h);
+    });
+
+    ctx.font = '18px monospace';
+    ctx.fillStyle = '#4a4a55';
+    ['R1','Ski','R2','Sled↑','R3','Sled↓','R4','Burp','R5','Row','R6','Carry','R7','Lunge','R8','WBall'].forEach((label, i) => {
+      const x = chartX + i * (barW + 4);
+      ctx.fillText(label, x, chartY + chartH + 24);
+    });
+  }
+
+  // Bottom
+  ctx.fillStyle = '#1c1c22';
+  ctx.fillRect(0, 940, 1080, 1);
+  ctx.font = '22px monospace';
+  ctx.fillStyle = '#4a4a55';
+  ctx.fillText('station8.ai  ·  Race Smarter.', 72, 985);
+  ctx.fillStyle = '#c8f03a';
+  ctx.fillText('#Hyrox #Station8.AI', 800, 985);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = `raceiq-${(raceData.city || 'result').replace(/\s/g,'-').toLowerCase()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  notify('Result card downloaded! Share it on any platform 📸', 'var(--green)');
+  document.getElementById('shareModalOverlay')?.remove();
+}
+
+function shareRaceResult(race) {
+  openShareModal({
+    title: 'Share Race Result',
+    text: `Just finished ${race.city} in ${race.time}! 🏁 Hyrox ${race.cat} — powered by Station8.AI strategy. ${SOCIAL_SHARE_URL}`,
+    url: SOCIAL_SHARE_URL,
+    raceData: race
+  });
+}
+
+// ============================================================
+//  LEADERBOARD
+// ============================================================
+const LB={
+  open:[
+    {name:'Sarah K.',city:'London',time:'59:44',cat:'F35-39'},
+    {name:'Marcus R.',city:'NYC',time:'61:12',cat:'M30-34'},
+    {name:'Jess T.',city:'Sydney',time:'62:38',cat:'F25-29'},
+    {name:'Tom B.',city:'Berlin',time:'64:05',cat:'M40-44'},
+    {name:'Layla M.',city:'Dubai',time:'65:22',cat:'F30-34'},
+    {name:'Chris V.',city:'Amsterdam',time:'66:10',cat:'M25-29'},
+    {name:'Fiona W.',city:'Toronto',time:'67:48',cat:'F40-44'},
+    {name:'Raj P.',city:'Singapore',time:'68:33',cat:'M35-39'},
+    {name:'Anna B.',city:'Stockholm',time:'69:14',cat:'F35-39'},
+    {name:'Luis G.',city:'Madrid',time:'70:02',cat:'M45-49'},
+  ],
+  pro:[
+    {name:'Dan H.',city:'Hamburg',time:'52:18',cat:'M PRO'},
+    {name:'Emma S.',city:'London',time:'53:44',cat:'F PRO'},
+    {name:'Luca M.',city:'Milan',time:'54:59',cat:'M PRO'},
+    {name:'Nina K.',city:'Oslo',time:'56:22',cat:'F PRO'},
+    {name:'Jake L.',city:'Chicago',time:'57:44',cat:'M PRO'},
+  ],
+  doubles:[
+    {name:'Smith & Jones',city:'Manchester',time:'58:12',cat:'Mixed'},
+    {name:'Team Velocity',city:'NYC',time:'60:34',cat:'M/M'},
+    {name:'The Swedes',city:'Stockholm',time:'61:55',cat:'F/F'},
+    {name:'Grünthal Duo',city:'Berlin',time:'63:10',cat:'Mixed'},
+  ],
+  local:[
+    {name:'Alex T.',city:'Your City',time:'75:00',cat:'M30-34'},
+    {name:'Sam W.',city:'Your City',time:'78:30',cat:'F25-29'},
+    {name:'Pat H.',city:'Your City',time:'82:15',cat:'M35-39'},
+  ]
+};
+function renderLeaderboard(){
+  ['open','pro','doubles','local'].forEach(cat=>{
+    const el=document.getElementById('lb-'+cat);
+    const data=LB[cat];
+    const best=parseT(data[0].time);
+    const rankColors=['gold','silver','bronze'];
+    el.innerHTML=`<div class="lb-hdr"><span>#</span><span>Athlete</span><span>Age Cat</span><span>Time</span><span>Rel. Pace</span></div>`+
+    data.map((a,i)=>{
+      const pct=Math.round((best/parseT(a.time))*100);
+      return `<div class="lb-row">
+        <div class="lb-rank ${rankColors[i]||''}">${i+1}</div>
+        <div><div class="lb-name">${a.name}</div><div class="lb-meta">📍 ${a.city}</div></div>
+        <div style="font-family:var(--font-m);font-size:10px;color:var(--muted)">${a.cat}</div>
+        <div class="lb-time">${a.time}</div>
+        <div class="lb-bar-wrap"><div class="lb-bar-inner" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
+  });
+}
+
+// ============================================================
+//  ACCOUNT
+// ============================================================
+const ACHIEVEMENTS=[
+  {id:'first',name:'First Race',icon:'🎖️',desc:'Log your first race'},
+  {id:'sub90',name:'Sub 90',icon:'⏱️',desc:'Finish under 90 minutes'},
+  {id:'sub75',name:'Sub 75',icon:'🔥',desc:'Finish under 75 minutes'},
+  {id:'sub60',name:'Sub 60',icon:'⚡',desc:'Finish under 60 minutes'},
+  {id:'5races',name:'5 Races',icon:'🏅',desc:'Complete 5 events'},
+  {id:'connect',name:'Connected',icon:'⌚',desc:'Link a device'},
+  {id:'community',name:'Community',icon:'💬',desc:'Post to the feed'},
+  {id:'planner',name:'Strategist',icon:'🎯',desc:'Build a race plan'},
+];
+function getUnlocked(){
+  const u=[];
+  if(APP.races.length>0) u.push('first','planner');
+  if(APP.races.some(r=>parseT(r.time)<90)) u.push('sub90');
+  if(APP.races.some(r=>parseT(r.time)<75)) u.push('sub75');
+  if(APP.races.some(r=>parseT(r.time)<60)) u.push('sub60');
+  if(APP.races.length>=5) u.push('5races');
+  if(Object.keys(APP.devices).length>0) u.push('connect');
+  if(APP.communityPosts.length>0) u.push('community');
+  return u;
+}
+function renderAccount(){
+  const el=document.getElementById('account-content');
+  if(!APP.user){
+    el.innerHTML=`<div class="auth-wall">
+      <div class="auth-card">
+        <div class="auth-title">STATION8.AI</div>
+        <div class="auth-sub">Create your account to track progress, connect devices, and join the community.</div>
+        <div class="tabs"><button class="tab active" onclick="swTab(this,'auth-signup')">Sign Up</button><button class="tab" onclick="swTab(this,'auth-login')">Sign In</button></div>
+        <div class="tab-body active" id="auth-signup">
+          <div class="fgroup mb-16"><label>Full Name</label><input type="text" id="au-name" placeholder="Alex Turner"></div>
+          <div class="fgroup mb-16"><label>Email</label><input type="email" id="au-email" placeholder="you@email.com"></div>
+          <div class="fgroup mb-16"><label>City</label><input type="text" id="au-city" placeholder="London"></div>
+          <div class="fgroup mb-16"><label>Password</label><input type="password" id="au-pass" placeholder="••••••••"></div>
+          <div class="fgroup mb-16"><label>Target Category</label><select id="au-cat"><option>Open</option><option>Pro</option><option>Doubles</option></select></div>
+          <button class="btn btn-acid" style="width:100%;font-size:13px" onclick="signUp()">CREATE ACCOUNT</button>
+          <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.5">Data stored locally on your device. No external server in this demo.</div>
+        </div>
+        <div class="tab-body" id="auth-login">
+          <div class="fgroup mb-16"><label>Email</label><input type="email" id="li-email" placeholder="you@email.com"></div>
+          <div class="fgroup mb-16"><label>Password</label><input type="password" id="li-pass" placeholder="••••••••"></div>
+          <button class="btn btn-acid" style="width:100%;font-size:13px;margin-bottom:8px" onclick="signIn()">SIGN IN</button>
+          <button onclick="signInMagicLink()" style="width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--dim);font-family:var(--font-m);font-size:10px;letter-spacing:1.5px;padding:10px;cursor:pointer;border-radius:var(--r);text-transform:uppercase;margin-bottom:8px;transition:all .2s" onmouseover="this.style.borderColor='var(--acid)';this.style.color='var(--acid)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--dim)'">📧 SEND MAGIC LINK (NO PASSWORD)</button>
+          <button onclick="signInWithGoogle()" style="width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--dim);font-family:var(--font-m);font-size:10px;letter-spacing:1.5px;padding:10px;cursor:pointer;border-radius:var(--r);text-transform:uppercase;transition:all .2s" onmouseover="this.style.borderColor='#4285f4';this.style.color='#4285f4'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--dim)'">🔵 SIGN IN WITH GOOGLE</button>
+          <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5" id="supabase-status-note"></div>
+        </div>
+      </div>
+    </div>`;
+    return;
+  }
+  const u=APP.user;
+  const unlocked=getUnlocked();
+  const best=APP.races.length?Math.min(...APP.races.map(r=>parseT(r.time))):null;
+  const goals=APP.goals||{targetTime:'60',nextRace:'',weeklyRuns:'3'};
+  document.getElementById('topbar-user').textContent=u.name.split(' ')[0];
+  el.innerHTML=`
+    <div class="profile-hero">
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar" style="background:${u.color||'var(--mid)'};">${u.name.split(' ').map(x=>x[0]).join('')}</div>
+        <div class="profile-level">${APP.races.length>4?'ELITE':APP.races.length>1?'RACER':'ROOKIE'}</div>
+      </div>
+      <div>
+        <div class="profile-name">${u.name.toUpperCase()}</div>
+        <div class="profile-handle">@${u.name.toLowerCase().replace(' ','_')} · ${u.city||'Earth'}</div>
+        <div class="profile-bio">${u.bio||'Hyrox athlete. Building race IQ one split at a time.'}</div>
+        <div class="profile-stats">
+          <div class="ps-item"><div class="ps-num">${APP.races.length}</div><div class="ps-label">Races</div></div>
+          <div class="ps-item"><div class="ps-num">${best?fmt(best):'—'}</div><div class="ps-label">Best Time</div></div>
+          <div class="ps-item"><div class="ps-num">${Object.keys(APP.devices).length}</div><div class="ps-label">Devices</div></div>
+          <div class="ps-item"><div class="ps-num">${unlocked.length}</div><div class="ps-label">Achievements</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="editProfile()">EDIT PROFILE</button>
+        <button class="btn btn-danger btn-sm" onclick="signOut()">SIGN OUT</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="swTab(this,'acc-goals')">Goals</button>
+      <button class="tab" onclick="swTab(this,'acc-achievements')">Achievements</button>
+      <button class="tab" onclick="swTab(this,'acc-settings')">Settings</button>
+    </div>
+
+    <div class="tab-body active" id="acc-goals">
+      <div class="grid-3 mb-16">
+        <div class="goal-card"><div class="goal-title">Target Finish Time</div>
+          <div class="goal-target">${goals.targetTime} min</div>
+          <div class="goal-sub">Race Goal</div>
+          ${best?`<div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:${Math.min(100,Math.round((parseInt(goals.targetTime)/best*100)))}%"></div></div>
+          <div class="goal-pct">${Math.min(100,Math.round((parseInt(goals.targetTime)/best*100)))}% there</div>`:'<div style="font-family:var(--font-m);font-size:10px;color:var(--muted)">Log a race to track progress</div>'}
+        </div>
+        <div class="goal-card"><div class="goal-title">Weekly Training Runs</div>
+          <div class="goal-target">${goals.weeklyRuns}</div>
+          <div class="goal-sub">Runs / Week</div>
+          <div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:${Object.keys(APP.devices).length>0?'72':'40'}%"></div></div>
+          <div class="goal-pct">${Object.keys(APP.devices).length>0?'Synced from device':'Connect a device to auto-track'}</div>
+        </div>
+        <div class="goal-card"><div class="goal-title">Races This Year</div>
+          <div class="goal-target">${APP.races.length}</div>
+          <div class="goal-sub">Completed</div>
+          <div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:${Math.min(100,(APP.races.length/3)*100)}%"></div></div>
+          <div class="goal-pct">Target: 3 races</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="p-title">Update Goals</div>
+        <div class="form-row form-row-3">
+          <div class="fgroup"><label>Target Finish (mins)</label><input type="number" id="g-time" value="${goals.targetTime}" min="50" max="130"></div>
+          <div class="fgroup"><label>Next Event</label><input type="text" id="g-event" value="${goals.nextRace}" placeholder="e.g. HYROX London"></div>
+          <div class="fgroup"><label>Weekly Runs Target</label><input type="number" id="g-runs" value="${goals.weeklyRuns}" min="1" max="14"></div>
+        </div>
+        <button class="btn btn-acid btn-sm" onclick="saveGoals()">SAVE GOALS</button>
+      </div>
+    </div>
+
+    <div class="tab-body" id="acc-achievements">
+      <div class="achievement-grid">
+        ${ACHIEVEMENTS.map(a=>{
+          const isUnlocked=unlocked.includes(a.id);
+          return `<div class="ach-card ${isUnlocked?'':'locked'}" title="${a.desc}">
+            <div class="ach-emoji">${a.icon}</div>
+            <div class="ach-name">${a.name}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="font-family:var(--font-m);font-size:10px;color:var(--muted);text-align:center;margin-top:16px;letter-spacing:1px">${unlocked.length} / ${ACHIEVEMENTS.length} UNLOCKED</div>
+    </div>
+
+    <div class="tab-body" id="acc-settings">
+      <div class="panel">
+        <div class="p-title">Profile Settings</div>
+        <div class="form-row form-row-2">
+          <div class="fgroup"><label>Display Name</label><input type="text" id="s-name" value="${u.name}"></div>
+          <div class="fgroup"><label>City</label><input type="text" id="s-city" value="${u.city||''}"></div>
+        </div>
+        <div class="form-row">
+          <div class="fgroup"><label>Bio</label><textarea id="s-bio">${u.bio||''}</textarea></div>
+        </div>
+        <div class="form-row form-row-2">
+          <div class="fgroup"><label>Weight Category</label><select id="s-cat"><option ${u.cat==='Open'?'selected':''}>Open</option><option ${u.cat==='Pro'?'selected':''}>Pro</option><option ${u.cat==='Doubles'?'selected':''}>Doubles</option></select></div>
+          <div class="fgroup"><label>Profile Colour</label><input type="color" id="s-color" value="${u.color||'#2a2a2a'}" style="height:42px;padding:4px 8px;cursor:pointer"></div>
+        </div>
+        <div class="flex gap-10 mt-16">
+          <button class="btn btn-acid" onclick="updateProfile()">SAVE CHANGES</button>
+          <button class="btn btn-danger" onclick="signOut()">SIGN OUT</button>
+        </div>
+      </div>
+    </div>`;
+}
+// ============================================================
+//  AUTH FUNCTIONS — Real Supabase when keys are set,
+//  demo localStorage fallback when not yet configured
+// ============================================================
+async function signUp(){
+  const name=document.getElementById('au-name').value.trim();
+  const email=document.getElementById('au-email').value.trim();
+  const city=document.getElementById('au-city').value.trim();
+  const cat=document.getElementById('au-cat').value;
+  const pass=document.getElementById('au-pass').value;
+  if(!name||!email){notify('Name and email required','var(--red)');return;}
+
+  if(SUPABASE_READY){
+    // REAL SUPABASE SIGN UP
+    notify('Creating account...', 'var(--blue)');
+    const {data, error} = await _sb.auth.signUp({
+      email,
+      password: pass,
+      options: { data: { name, city, cat } }
+    });
+    if(error){
+      notify('Sign up failed: ' + error.message, 'var(--red)');
+      return;
+    }
+    // Profile will be created by onAuthStateChange → loadUserProfile
+    // Show confirmation if email verification is required
+    if(data.user && !data.session){
+      renderAccount();
+      notify('Check your email to confirm your account! 📧', 'var(--acid)');
+      document.getElementById('account-content').innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;min-height:60vh">
+          <div style="text-align:center;max-width:420px;padding:40px">
+            <div style="font-size:56px;margin-bottom:16px">📧</div>
+            <div style="font-family:var(--font-d);font-size:40px;letter-spacing:2px;color:var(--acid);margin-bottom:12px">CHECK YOUR EMAIL</div>
+            <p style="font-size:14px;color:var(--dim);line-height:1.7">We sent a confirmation link to <strong style="color:var(--text)">${email}</strong>. Click it to activate your account, then come back here and sign in.</p>
+            <button class="btn btn-outline" style="margin-top:24px" onclick="renderAccount()">← Back to Sign In</button>
+          </div>
+        </div>`;
+    }
+  } else {
+    // DEMO FALLBACK — localStorage only
+    const colors=['#2a4a2a','#2a2a4a','#4a2a2a','#3a3a1a','#1a3a3a'];
+    APP.user={name,email,city,cat,bio:'',color:colors[Math.floor(Math.random()*colors.length)],tier:'free'};
+    save('user',APP.user);
+    document.getElementById('topbar-user').textContent=name.split(' ')[0];
+    renderAccount();
+    notify(`Welcome to Station8.AI, ${name.split(' ')[0]}! 🏁 (Demo mode — connect Supabase for real accounts)`);
+  }
+}
+
+async function signIn(){
+  const email=document.getElementById('li-email').value.trim();
+  const pass=document.getElementById('li-pass').value;
+  if(!email){notify('Enter your email','var(--red)');return;}
+  if(!pass){notify('Enter your password','var(--red)');return;}
+
+  if(SUPABASE_READY){
+    notify('Signing in...', 'var(--blue)');
+    console.log('Attempting sign in for:', email);
+    console.log('SUPABASE_READY:', SUPABASE_READY);
+    console.log('_sb exists:', !!_sb);
+    try {
+      const {data, error} = await _sb.auth.signInWithPassword({ email, password: pass });
+      console.log('Sign in response - data:', data, 'error:', error);
+      if(error){
+        console.error('Sign in error:', error);
+        notify('Sign in failed: ' + error.message, 'var(--red)');
+        return;
+      }
+      if(data && data.user){
+        console.log('Sign in success, user:', data.user.email);
+        notify('Signed in! Welcome back 🏁', 'var(--green)');
+        APP.supabaseSession = data.session;
+        await loadUserProfile(data.user);
+        document.getElementById('topbar-user').textContent = APP.user?.name?.split(' ')[0] || 'Athlete';
+        renderDash();
+        renderAccount();
+      }
+    } catch(e) {
+      console.error('Sign in exception:', e);
+      notify('Sign in error: ' + e.message, 'var(--red)');
+    }
+  } else {
+    console.warn('Supabase not ready — running in demo mode');
+    notify('Supabase not connected — check your keys', 'var(--orange)');
+    // DEMO FALLBACK
+    const stored=JSON.parse(localStorage.getItem('station8-user')||'null');
+    if(stored&&stored.email===email){
+      APP.user=stored;
+      document.getElementById('topbar-user').textContent=APP.user.name.split(' ')[0];
+      renderAccount();
+      notify(`Welcome back, ${APP.user.name.split(' ')[0]}! 👋`);
+    } else {
+      notify('No account found. Try signing up first.','var(--orange)');
+    }
+  }
+}
+
+async function signInWithGoogle(){
+  if(!SUPABASE_READY){ notify('Connect Supabase to enable Google Sign-In','var(--orange)'); return; }
+  const {error} = await _sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error) notify('Google sign in failed: ' + error.message, 'var(--red)');
+}
+
+async function signInMagicLink(){
+  const email = document.getElementById('li-email')?.value?.trim() || prompt('Enter your email:');
+  if(!email){ return; }
+  if(!SUPABASE_READY){ notify('Connect Supabase to enable magic links','var(--orange)'); return; }
+  const {error} = await _sb.auth.signInWithOtp({ email });
+  if(error){ notify('Error: ' + error.message, 'var(--red)'); return; }
+  notify('Magic link sent to ' + email + '! Check your inbox 📧', 'var(--green)');
+}
+
+async function signOut(){
+  if(SUPABASE_READY){ await _sb.auth.signOut(); }
+  APP.user=null; APP.supabaseSession=null;
+  save('user',null);
+  document.getElementById('topbar-user').textContent='Sign In';
+  renderAccount();
+  notify('Signed out');
+}
+
+async function updateProfile(){
+  const name=document.getElementById('s-name').value;
+  const city=document.getElementById('s-city').value;
+  const bio=document.getElementById('s-bio').value;
+  const cat=document.getElementById('s-cat').value;
+  const color=document.getElementById('s-color').value;
+
+  APP.user = {...APP.user, name, city, bio, cat, color};
+  save('user', APP.user);
+  document.getElementById('topbar-user').textContent=APP.user.name.split(' ')[0];
+
+  if(SUPABASE_READY && APP.supabaseSession){
+    const {error} = await _sb.from('profiles').upsert({
+      id: APP.supabaseSession.user.id,
+      name, city, bio, cat, color,
+      updated_at: new Date().toISOString()
+    });
+    if(error) notify('Profile save error: ' + error.message, 'var(--red)');
+    else notify('Profile updated ✅','var(--green)');
+  } else {
+    notify('Profile updated ✅','var(--green)');
+  }
+  renderAccount();
+}
+
+function editProfile(){swTab(document.querySelector('[onclick*=acc-settings]'),  'acc-settings');}
+function saveGoals(){
+  APP.goals={targetTime:document.getElementById('g-time').value,nextRace:document.getElementById('g-event').value,weeklyRuns:document.getElementById('g-runs').value};
+  save('goals',APP.goals);renderAccount();notify('Goals saved! 🎯','var(--green)');
+}
+
+// ============================================================
+//  SOCIAL CONNECT PAGE
+// ============================================================
+const SOCIAL_PLATFORMS_CONFIG = [
+  {id:'instagram',name:'Instagram',icon:'📸',color:'#e4405f',bgColor:'rgba(228,64,95,.08)',borderColor:'rgba(228,64,95,.25)',connectNote:'Copy link sharing (no API key needed)'},
+  {id:'tiktok',name:'TikTok',icon:'🎵',color:'#ff0050',bgColor:'rgba(255,0,80,.08)',borderColor:'rgba(255,0,80,.25)',connectNote:'Copy link sharing (no API key needed)'},
+  {id:'facebook',name:'Facebook',icon:'👥',color:'#1877f2',bgColor:'rgba(24,119,242,.08)',borderColor:'rgba(24,119,242,.25)',connectNote:'Direct share dialog (no API key needed)'},
+  {id:'twitter',name:'X / Twitter',icon:'🐦',color:'#1da1f2',bgColor:'rgba(29,161,242,.08)',borderColor:'rgba(29,161,242,.25)',connectNote:'Direct share intent (no API key needed)'},
+  {id:'strava',name:'Strava',icon:'🏃',color:'#FC4C02',bgColor:'rgba(252,76,2,.08)',borderColor:'rgba(252,76,2,.25)',connectNote:'Requires Strava OAuth — connect in Devices & Apps'},
+];
+
+function renderSocialPage() {
+  const grid = document.getElementById('social-connected-grid');
+  if(!grid) return;
+  grid.innerHTML = SOCIAL_PLATFORMS_CONFIG.map(p => {
+    const isAutoReady = ['instagram','tiktok','facebook','twitter'].includes(p.id);
+    const stravaConnected = p.id === 'strava' && !!APP.devices['strava'];
+    const ready = isAutoReady || stravaConnected;
+    return `<div style="background:${p.bgColor};border:1px solid ${p.borderColor};border-radius:3px;padding:16px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:26px">${p.icon}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:${p.color}">${p.name}</div>
+        <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:.5px">${ready?'✅ READY':'⚙️ '+p.connectNote}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Populate race picker
+  const picker = document.getElementById('social-race-picker');
+  if(picker) {
+    picker.innerHTML = '<option value="">— Choose a race —</option>' +
+      APP.races.map((r,i) => `<option value="${i}">${r.city} — ${r.time} (${r.date})</option>`).join('');
+    picker.onchange = () => {
+      const idx = parseInt(picker.value);
+      const preview = document.getElementById('social-race-preview');
+      if(isNaN(idx)){preview.style.display='none';return;}
+      const r = APP.races[idx];
+      preview.style.display = 'block';
+      preview.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-family:var(--font-d);font-size:22px;letter-spacing:1px">${r.city.toUpperCase()}</div><div style="font-family:var(--font-m);font-size:10px;color:var(--muted)">${r.date} · ${r.cat}</div></div>
+        <div style="font-family:var(--font-d);font-size:36px;color:var(--acid)">${r.time}</div>
+      </div>`;
+      renderCardPreview(r);
+    };
+  }
+}
+
+function triggerRaceShare() {
+  const idx = parseInt(document.getElementById('social-race-picker')?.value);
+  if(isNaN(idx)){notify('Select a race first','var(--orange)');return;}
+  shareRaceResult(APP.races[idx]);
+}
+
+function triggerCardDownload() {
+  const idx = parseInt(document.getElementById('social-race-picker')?.value);
+  if(isNaN(idx)){notify('Select a race first','var(--orange)');return;}
+  generateShareCard(APP.races[idx]);
+}
+
+function renderCardPreview(race) {
+  const canvas = document.getElementById('card-preview');
+  if(!canvas) return;
+  race = race || APP.races[0] || {city:'Your Race',time:'72:30',cat:'Open',date:new Date().toLocaleDateString('en-GB'),splits:[]};
+  const ctx = canvas.getContext('2d');
+  const w=400,h=400;
+  ctx.fillStyle='#070709'; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='rgba(200,240,58,0.05)'; ctx.lineWidth=1;
+  for(let x=0;x<w;x+=20){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+  for(let y=0;y<h;y+=20){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  ctx.fillStyle='#c8f03a'; ctx.fillRect(0,0,w,3);
+  ctx.font='bold 22px Arial'; ctx.fillStyle='#c8f03a'; ctx.fillText('STATION8',24,40);
+  ctx.font='10px monospace'; ctx.fillStyle='#4a4a55'; ctx.fillText('/ HYROX',80,40);
+  ctx.fillStyle='#1c1c22'; ctx.fillRect(24,52,352,1);
+  ctx.font='bold 28px Arial'; ctx.fillStyle='#e6e6f0'; ctx.fillText((race.city||'MY RACE').toUpperCase().slice(0,16),24,90);
+  ctx.font='bold 70px Arial'; ctx.fillStyle='#c8f03a'; ctx.fillText(race.time||'--:--',24,185);
+  ctx.font='12px monospace'; ctx.fillStyle='#4a4a55'; ctx.fillText(race.cat||'OPEN',24,215);
+  if(race.splits&&race.splits.length){
+    const cX=24,cY=240,cW=352,cH=100,max=Math.max(...race.splits);
+    const bW=Math.floor(cW/race.splits.length)-2;
+    race.splits.forEach((t,i)=>{
+      const bH=Math.round((t/max)*cH),x=cX+i*(bW+2),y=cY+cH-bH;
+      ctx.fillStyle=i%2===0?'rgba(77,158,255,0.7)':'rgba(200,240,58,0.7)';
+      ctx.fillRect(x,y,bW,bH);
+    });
+  }
+  ctx.fillStyle='#1c1c22'; ctx.fillRect(0,370,w,1);
+  ctx.font='11px monospace'; ctx.fillStyle='#4a4a55'; ctx.fillText('station8.ai',24,390);
+  ctx.fillStyle='#c8f03a'; ctx.fillText('#Hyrox',320,390);
+}
+
+// ── Update INIT to include social page ───────────────────────
+function renderDash(){
+  document.getElementById('d-races').textContent=APP.races.length||'0';
+  const best=APP.races.length?Math.min(...APP.races.map(r=>parseT(r.time))):null;
+  document.getElementById('d-pr').textContent=best?fmt(best):'—';
+  document.getElementById('d-devices').textContent=Object.keys(APP.devices).length;
+  const nextEvt=HYROX_EVENTS.find(e=>new Date(e.date)>new Date());
+  document.getElementById('d-next').textContent=nextEvt?nextEvt.city:'—';
+  const rec=document.getElementById('dash-recent');
+  if(!APP.races.length){rec.innerHTML='<div class="empty">No races yet</div>';}
+  else{rec.innerHTML=APP.races.slice(0,3).map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px;font-weight:500">${r.city}</div><div style="font-family:var(--font-m);font-size:10px;color:var(--muted)">${r.date}</div></div><div style="font-family:var(--font-d);font-size:24px;color:var(--acid)">${r.time}</div></div>`).join('');}
+  document.getElementById('dash-community').innerHTML=SEED_POSTS.slice(0,3).map(p=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:500">${p.author} <span style="font-family:var(--font-m);font-size:9px;color:var(--muted)">${p.time}</span></div><div style="font-size:12px;color:var(--dim);margin-top:4px;line-height:1.5">${p.text.slice(0,80)}…</div></div>`).join('');
+}
+
+// ============================================================
+//  PRICING PAGE
+// ============================================================
+let pricingAnnual = false;
+
+const PR_FREE_FEATS = [
+  {t:'Race planner',v:'Unlimited use',y:true},
+  {t:'Race log',v:'3 races max',y:false,lim:true},
+  {t:'Community feed',v:'Read only',y:false,lim:true},
+  {t:'Event finder',v:'Full access',y:true},
+  {t:'Leaderboard',v:'Top 10 only',y:false,lim:true},
+  {t:'AI coaching',v:null,y:false},
+  {t:'Device sync',v:null,y:false},
+  {t:'Result cards',v:null,y:false},
+  {t:'Community posting',v:null,y:false},
+];
+const PR_PRO_FEATS = [
+  {t:'Everything in Free',v:'Included',y:true},
+  {t:'Race log',v:'Unlimited',y:true},
+  {t:'AI race coaching',v:'After every race',y:true},
+  {t:'Device sync',v:'Garmin, Strava, Whoop',y:true},
+  {t:'Shareable result cards',v:'PNG download',y:true},
+  {t:'Community posting',v:'Full access',y:true},
+  {t:'Full leaderboard',v:'All categories',y:true},
+  {t:'Goals & achievements',v:'All badges',y:true},
+  {t:'Social sharing',v:'All platforms',y:true},
+];
+const PR_GYM_FEATS = [
+  {t:'Pro for all members',v:'Included',y:true},
+  {t:'Gym analytics dashboard',v:'Included',y:true},
+  {t:'Members-only leaderboard',v:'Included',y:true},
+  {t:'White-label branding',v:'Optional',y:true},
+  {t:'Bulk race import',v:'Included',y:true},
+  {t:'Monthly report PDF',v:'Included',y:true},
+  {t:'Priority support',v:'24hr response',y:true},
+  {t:'Unlimited members',v:'Flat rate',y:true},
+];
+const PR_COMPARE = [
+  {cat:'Race Planning',rows:[
+    ['Race planner (splits)','✓','✓','✓'],
+    ['AI race coaching','—','✓','✓'],
+    ['Weakness identifier','—','✓','✓'],
+  ]},
+  {cat:'Race Log',rows:[
+    ['Saved races','3 max','Unlimited','Unlimited'],
+    ['PR detection','—','✓','✓'],
+    ['Split breakdown','—','✓','✓'],
+  ]},
+  {cat:'Devices',rows:[
+    ['Strava sync','—','✓','✓'],
+    ['Garmin Connect','—','✓','✓'],
+    ['Whoop / Polar / Fitbit','—','✓','✓'],
+  ]},
+  {cat:'Community',rows:[
+    ['Community feed (read)','✓','✓','✓'],
+    ['Post results & tips','—','✓','✓'],
+    ['Follow athletes','—','✓','✓'],
+    ['Leaderboard','Top 10','Full','Full + Gym'],
+    ['Result cards (PNG)','—','✓','✓'],
+  ]},
+  {cat:'Events',rows:[
+    ['Global event finder','✓','✓','✓'],
+    ['Event strategy planning','—','✓','✓'],
+  ]},
+  {cat:'Gym Features',rows:[
+    ['Gym analytics dashboard','—','—','✓'],
+    ['Members-only leaderboard','—','—','✓'],
+    ['White-label branding','—','—','✓'],
+    ['Bulk race import','—','—','✓'],
+  ]},
+];
+const PR_FAQS = [
+  ['Can I cancel anytime?','Yes — cancel from your profile with one click. No penalty. You keep Pro to end of billing period, then drop to Free. Your data stays forever.'],
+  ['Is the Free plan really free?','Genuinely free, forever. No card, no timer. The only limits are 3 saved races and no AI coaching. The race planner is unlimited.'],
+  ['How does the annual plan work?','Annual Pro is £39.99 billed once per year — equivalent to £3.33/month. 4 months free vs monthly. Prorated refund if you cancel early.'],
+  ['What is the Gym tier?','One flat fee, unlimited members. Every member who joins via your invite link gets full Pro included. £29/month covers everyone.'],
+  ['Is there a free trial?','Yes — 7 days free when you sign up for Pro. Cancel before day 7 and you\'re not charged.'],
+  ['What payment methods?','All major credit/debit cards via Stripe. Apple Pay and Google Pay also supported.'],
+];
+
+function renderPricingPage() {
+  // Features
+  function featHtml(feats) {
+    return feats.map(f => {
+      const color = f.y ? 'var(--green)' : f.lim ? 'var(--acid)' : 'var(--muted)';
+      const icon = f.y ? '✓' : f.lim ? '◐' : '✗';
+      return `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <span style="color:${color};flex-shrink:0;width:14px;font-size:13px">${icon}</span>
+        <span style="color:${f.y?'var(--text)':f.lim?'var(--text)':'var(--muted)'}">
+          ${f.t}${f.v?` <span style="color:var(--dim);font-size:11px">— ${f.v}</span>`:''}
+        </span>
+      </div>`;
+    }).join('');
+  }
+  const fEl = document.getElementById('pr-free-features');
+  const pEl = document.getElementById('pr-pro-features');
+  const gEl = document.getElementById('pr-gym-features');
+  if(fEl) fEl.innerHTML = featHtml(PR_FREE_FEATS);
+  if(pEl) pEl.innerHTML = featHtml(PR_PRO_FEATS);
+  if(gEl) gEl.innerHTML = featHtml(PR_GYM_FEATS);
+
+  // Compare table
+  const tbody = document.getElementById('pr-compare-body');
+  if(tbody) {
+    tbody.innerHTML = PR_COMPARE.map(section =>
+      `<tr><td colspan="4" style="padding:8px 14px;background:var(--panel2);font-family:var(--font-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">${section.cat}</td></tr>` +
+      section.rows.map(r => {
+        const cell = (v,i) => {
+          const isY = v==='✓'; const isN = v==='—';
+          const c = i===2?'var(--acid)':i===3?'var(--orange)':'var(--text)';
+          return `<td style="padding:10px 14px;text-align:${i>0?'center':'left'};border-bottom:1px solid rgba(30,30,40,.5);font-size:12px;color:${isN?'var(--muted)':isY?c:'var(--dim)'}">${v}</td>`;
+        };
+        return `<tr>${r.map((v,i)=>cell(v,i)).join('')}</tr>`;
+      }).join('')
+    ).join('');
+  }
+
+  // FAQ
+  const faqEl = document.getElementById('pr-faq-list');
+  if(faqEl) {
+    faqEl.innerHTML = PR_FAQS.map((f,i) => `
+      <div style="border-bottom:1px solid var(--border)">
+        <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block';this.querySelector('.faq-arr').textContent=this.nextElementSibling.style.display==='block'?'▲':'▼'" style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;cursor:pointer;font-size:14px;font-weight:600;user-select:none">
+          <span>${f[0]}</span><span class="faq-arr" style="color:var(--acid);font-size:12px">▼</span>
+        </div>
+        <div style="display:none;padding:0 0 14px;font-size:13px;color:var(--dim);line-height:1.7">${f[1]}</div>
+      </div>`).join('');
+  }
+
+  // Platform guide (fixing the broken template literal)
+  const pgEl = document.getElementById('platform-guide-list');
+  if(pgEl) {
+    const platforms = [
+      {icon:'📸',name:'Instagram',color:'#e4405f',status:'Copy link → paste in Story',action:'Link copied! Open Instagram and paste in your Story or bio.'},
+      {icon:'🎵',name:'TikTok',color:'#ff0050',status:'Copy link → paste in bio/caption',action:'Link copied! Open TikTok and paste in video description or bio.'},
+      {icon:'👥',name:'Facebook',color:'#1877f2',status:'Direct share supported',action:'Opens Facebook Share Dialog directly — no setup needed.'},
+      {icon:'🏃',name:'Strava',color:'#FC4C02',status:'Connect in Devices & Apps',action:'Once connected, results are shared as Strava posts automatically.'},
+      {icon:'🐦',name:'X / Twitter',color:'#1da1f2',status:'Direct share supported',action:'Opens X compose with pre-filled text — no setup needed.'},
+    ];
+    pgEl.innerHTML = platforms.map(p => `
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:22px;width:28px;text-align:center">${p.icon}</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:${p.color}">${p.name}</div>
+          <div style="font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:.5px;margin-top:2px">${p.status}</div>
+        </div>
+        <button onclick="notify('${p.action}','${p.color}')" style="background:none;border:1px solid var(--border);color:var(--dim);font-family:var(--font-m);font-size:9px;letter-spacing:1px;padding:5px 10px;cursor:pointer;border-radius:3px;text-transform:uppercase">Info</button>
+      </div>`).join('');
+  }
+}
+
+function togglePricing() {
+  pricingAnnual = !pricingAnnual;
+  const toggle = document.getElementById('pr-toggle');
+  const thumb = document.getElementById('pr-thumb');
+  const badge = document.getElementById('pr-save-badge');
+  const lmo = document.getElementById('pr-lbl-mo');
+  const lyr = document.getElementById('pr-lbl-yr');
+  if(toggle) toggle.style.background = pricingAnnual ? 'rgba(200,240,58,.15)' : 'var(--panel2)';
+  if(thumb) { thumb.style.left = pricingAnnual ? '26px' : '4px'; thumb.style.background = pricingAnnual ? 'var(--acid)' : 'var(--muted)'; }
+  if(badge) badge.style.opacity = pricingAnnual ? '1' : '.4';
+  if(lmo) lmo.style.color = pricingAnnual ? 'var(--muted)' : 'var(--text)';
+  if(lyr) lyr.style.color = pricingAnnual ? 'var(--text)' : 'var(--muted)';
+  const pp = document.getElementById('pr-pro-price');
+  const ps = document.getElementById('pr-pro-sub');
+  const pn = document.getElementById('pr-pro-note');
+  const gp = document.getElementById('pr-gym-price');
+  const gs = document.getElementById('pr-gym-sub');
+  const gn = document.getElementById('pr-gym-note');
+  if(pricingAnnual) {
+    if(pp) pp.textContent='39.99'; if(ps) ps.textContent='/year'; if(pn) pn.textContent='= £3.33/mo · Save £19.89';
+    if(gp) gp.textContent='249'; if(gs) gs.textContent='/year'; if(gn) gn.textContent='= £20.75/mo · Save £99';
+  } else {
+    if(pp) pp.textContent='4.99'; if(ps) ps.textContent='/month'; if(pn) pn.textContent='';
+    if(gp) gp.textContent='29'; if(gs) gs.textContent='/month'; if(gn) gn.textContent='';
+  }
+}
+
+function startProCheckout() {
+  const tier = APP.user?.tier;
+  if(tier === 'pro') { notify('You are already on Pro! ⚡','var(--green)'); return; }
+  notify('Stripe checkout opens here in production. 7-day free trial starts now!','var(--acid)');
+  if(APP.user) { APP.user.tier = 'pro'; save('user', APP.user); notify('Pro activated (demo)! ⚡','var(--acid)'); renderAccount(); }
+  else { goPage('account', document.querySelector('[onclick*=account]')); notify('Sign up first, then upgrade to Pro!','var(--acid)'); }
+}
+
+function contactGym() {
+  notify('Email hello@station8.ai for Gym tier setup — we onboard within 24 hours 🏋️','var(--orange)');
+}
+
+// ============================================================
+//  PAGE TITLES (updated with pricing + social)
+// ============================================================
+
+// ============================================================
+//  INIT
+// ============================================================
+
+// Check Supabase connection and restore session
+(async () => {
+  if(SUPABASE_READY){
+    const { data: { session } } = await _sb.auth.getSession();
+    if(session){
+      APP.supabaseSession = session;
+      await loadUserProfile(session.user);
+      document.getElementById('topbar-user').textContent = APP.user?.name?.split(' ')[0] || 'Athlete';
+    }
+    // Update status note in sign-in form if it exists
+    const note = document.getElementById('supabase-status-note');
+    if(note) note.innerHTML = '<span style="color:var(--green)">✅ Supabase connected — accounts are real</span>';
+  } else {
+    const note = document.getElementById('supabase-status-note');
+    if(note) note.innerHTML = '<span style="color:var(--orange)">⚠️ Demo mode — add Supabase keys for real accounts</span>';
+  }
+})();
+
+calcPlan();
+renderDash();
+renderLog();
+</script>
+</body>
+</html>
