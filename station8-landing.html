@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Station8.AI — Coming Soon | Hyrox Race Intelligence</title>
+<meta name="description" content="The Hyrox app built around race-day strategy. AI-powered split prediction, community results, and device sync. Join the waitlist.">
+<meta property="og:title" content="Station8.AI — Race Smarter">
+<meta property="og:description" content="The only app built for Hyrox race-day strategy. Join 1,200+ athletes on the waitlist.">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script>
+  const _SURL = 'https://xfydmhfvvqhioevgrrsw.supabase.co';
+  const _SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmeWRtaGZ2dnFoaW9ldmdycnN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NjIxMzcsImV4cCI6MjA4OTEzODEzN30.3CKU7NWEzyq0-KIbqlOItM61oSp3zT-SpsAsj5wdylc';
+  let _sbc = null;
+  try {
+    if(_SURL !== 'YOUR_SUPABASE_URL' && window.supabase) {
+      _sbc = window.supabase.createClient(_SURL, _SKEY);
+    }
+  } catch(e) { console.warn('Supabase not loaded', e.message); }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050507;--bg2:#080809;--surface:#0d0d10;--surface2:#111114;
+  --border:#1e1e24;--mid:#2a2a32;--muted:#52526a;--dim:#8888a8;--text:#f0f0f8;
+  --acid:#d4ff00;--acid2:#c0e800;--acid-dim:rgba(212,255,0,.08);--acid-glow:rgba(212,255,0,.15);
+  --orange:#ff5a1f;--blue:#3a7fff;
+  --fd:'Bebas Neue',sans-serif;--fm:'DM Mono',monospace;--fb:'DM Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9997;opacity:.6}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--acid);color:var(--bg);font-family:var(--fm);font-size:11px;letter-spacing:1.5px;padding:13px 22px;border-radius:2px;z-index:10000;transform:translateY(100px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);font-weight:700;text-transform:uppercase;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:0 48px;height:68px;display:flex;align-items:center;justify-content:space-between;transition:all .3s}
+nav.scrolled{background:rgba(5,5,7,.95);border-bottom:1px solid var(--border);backdrop-filter:blur(20px)}
+.nav-logo{font-family:var(--fd);font-size:24px;letter-spacing:4px;color:var(--acid);text-decoration:none;display:flex;align-items:center;gap:10px}
+.blink{width:7px;height:7px;background:var(--acid);border-radius:50%;animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+.nav-links{display:flex;gap:4px;align-items:center}
+.nav-link{font-family:var(--fm);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:8px 16px;transition:color .2s}
+.nav-link:hover{color:var(--text)}
+.nav-cta{font-family:var(--fm);font-size:10px;letter-spacing:2px;text-transform:uppercase;background:var(--acid);color:var(--bg);padding:10px 22px;border:none;cursor:pointer;border-radius:2px;font-weight:700;transition:all .2s;margin-left:8px}
+.nav-cta:hover{background:var(--acid2);transform:translateY(-1px)}
+.nav-mcta{display:none;font-family:var(--fm);font-size:9px;letter-spacing:2px;background:var(--acid);color:var(--bg);padding:8px 16px;border:none;cursor:pointer;border-radius:2px;font-weight:700}
+
+/* HERO */
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;padding:0 48px 80px;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,#050507 0%,#050507 50%,#080f00 100%)}
+.hero-grid{position:absolute;inset:0;z-index:0;overflow:hidden}
+.hero-grid::before{content:'';position:absolute;inset:-50%;background-image:linear-gradient(rgba(212,255,0,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(212,255,0,.03) 1px,transparent 1px);background-size:80px 80px;animation:gdrift 25s linear infinite}
+@keyframes gdrift{from{transform:translateY(0)}to{transform:translateY(80px)}}
+.hero-orb{position:absolute;width:900px;height:900px;border-radius:50%;background:radial-gradient(circle,rgba(212,255,0,.06) 0%,transparent 65%);top:-250px;right:-200px;z-index:0;animation:opulse 7s ease-in-out infinite}
+@keyframes opulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.hero-station-bg{position:absolute;right:0;top:50%;transform:translateY(-50%);font-family:var(--fd);font-size:clamp(240px,35vw,480px);color:rgba(212,255,0,.035);line-height:1;pointer-events:none;z-index:0;letter-spacing:-20px;user-select:none}
+
+.hero-content{position:relative;z-index:1;max-width:1000px}
+.eyebrow{display:inline-flex;align-items:center;gap:14px;font-family:var(--fm);font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--acid);margin-bottom:32px;opacity:0;animation:rise .7s .15s ease forwards}
+.eyebrow-line{width:36px;height:1px;background:var(--acid);flex-shrink:0}
+.hero-h{font-family:var(--fd);font-size:clamp(84px,14vw,210px);line-height:.86;letter-spacing:1px;opacity:0;animation:rise .7s .25s ease forwards}
+.hero-h .t1{display:block;color:var(--text)}
+.hero-h .t2{display:block;color:var(--acid)}
+.hero-h .t3{display:block;-webkit-text-stroke:2px rgba(255,255,255,.12);color:transparent}
+.hero-divider{width:56px;height:3px;background:var(--acid);margin:30px 0;opacity:0;animation:rise .7s .38s ease forwards}
+.hero-p{font-size:clamp(15px,1.8vw,19px);color:var(--dim);max-width:480px;line-height:1.65;opacity:0;animation:rise .7s .45s ease forwards;font-weight:300}
+.hero-btns{display:flex;gap:12px;margin-top:40px;flex-wrap:wrap;opacity:0;animation:rise .7s .55s ease forwards}
+.hero-stats{display:flex;gap:0;margin-top:60px;opacity:0;animation:rise .7s .65s ease forwards;border-top:1px solid var(--border);padding-top:32px;flex-wrap:wrap}
+.hstat{flex:1;min-width:110px;padding-right:32px;border-right:1px solid var(--border)}
+.hstat:last-child{border-right:none}
+.hstat-n{font-family:var(--fd);font-size:clamp(34px,5vw,54px);color:var(--acid);line-height:1;display:block}
+.hstat-l{font-family:var(--fm);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-top:6px;display:block}
+.scroll-ind{position:absolute;bottom:28px;right:48px;z-index:1;display:flex;align-items:center;gap:8px;font-family:var(--fm);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;opacity:0;animation:rise .7s .9s ease forwards;writing-mode:vertical-rl}
+.scroll-l{width:1px;height:36px;background:linear-gradient(to bottom,var(--acid),transparent);animation:sl 2s ease infinite}
+@keyframes sl{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+@keyframes rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+
+/* TICKER */
+.ticker-wrap{overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:13px 0;background:var(--surface);position:relative;z-index:1}
+.ticker-inner{display:flex;animation:tick 32s linear infinite;white-space:nowrap}
+.ticker-inner:hover{animation-play-state:paused}
+.ti{font-family:var(--fm);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);padding:0 40px;display:inline-flex;align-items:center;gap:14px;flex-shrink:0}
+.ts{color:var(--acid)}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* SHARED */
+.sw{max-width:1200px;margin:0 auto;padding:0 48px}
+.sh{margin-bottom:56px}
+.sl-label{font-family:var(--fm);font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--acid);display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.sl-label::after{content:'';width:60px;height:1px;background:linear-gradient(to right,var(--border),transparent)}
+.st{font-family:var(--fd);font-size:clamp(44px,6vw,84px);letter-spacing:2px;line-height:.92;color:var(--text)}
+.st em{color:var(--acid);font-style:normal}
+.sd{font-size:15px;color:var(--dim);line-height:1.75;max-width:520px;margin-top:14px;font-weight:300}
+
+/* COUNTDOWN */
+.cds{padding:80px 0;background:var(--surface);border-bottom:1px solid var(--border)}
+.cdl{font-family:var(--fm);font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:24px;display:block;text-align:center}
+.cd{display:flex;justify-content:center;gap:2px}
+.cdu{display:flex;flex-direction:column;align-items:center;padding:28px 40px;background:var(--bg);border:1px solid var(--border);position:relative;overflow:hidden;min-width:130px}
+.cdu::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acid)}
+.cdn{font-family:var(--fd);font-size:clamp(56px,9vw,96px);color:var(--acid);line-height:1;letter-spacing:2px}
+.cdsub{font-family:var(--fm);font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-top:8px}
+
+/* WAITLIST */
+.ws{padding:100px 0;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.ws::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 110%,rgba(212,255,0,.07),transparent 70%)}
+.wi{max-width:600px;margin:0 auto;text-align:center;position:relative;z-index:1;padding:0 24px}
+.wf{display:flex;gap:0;max-width:480px;margin:40px auto 0;border:1px solid var(--border);border-radius:2px;overflow:hidden;background:var(--surface);transition:border-color .2s}
+.wf:focus-within{border-color:var(--acid)}
+.wi-input{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--fb);font-size:15px;padding:16px 20px;outline:none}
+.wi-input::placeholder{color:var(--muted)}
+.wbtn{background:var(--acid);color:var(--bg);font-family:var(--fd);font-size:20px;letter-spacing:2px;padding:0 32px;border:none;cursor:pointer;transition:background .2s;min-width:110px}
+.wbtn:hover{background:var(--acid2)}
+.wperks{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:18px}
+.wperk::before{content:'✓ ';color:var(--acid)}
+.wcount-wrap{margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
+.wcount{font-family:var(--fd);font-size:44px;color:var(--acid);letter-spacing:2px}
+.wcount-sub{font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-top:4px}
+.wsuccess{display:none;background:rgba(212,255,0,.05);border:1px solid rgba(212,255,0,.2);padding:28px;border-radius:2px;margin:32px auto 0;max-width:480px}
+.wsuccess h3{font-family:var(--fd);font-size:36px;color:var(--acid);letter-spacing:3px;margin-bottom:8px}
+.wsuccess p{font-size:14px;color:var(--dim);line-height:1.6}
+
+/* NUMBERS */
+.nums{background:var(--acid);overflow:hidden}
+.nums-inner{display:grid;grid-template-columns:repeat(4,1fr);max-width:1200px;margin:0 auto}
+.num-item{padding:48px 32px;border-right:1px solid rgba(0,0,0,.12);text-align:center}
+.num-item:last-child{border-right:none}
+.num-val{font-family:var(--fd);font-size:clamp(52px,7vw,80px);color:var(--bg);letter-spacing:1px;line-height:1}
+.num-lbl{font-family:var(--fm);font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(0,0,0,.45);margin-top:8px}
+
+/* FEATURES */
+.fs{padding:100px 0}
+.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:2px;overflow:hidden}
+.fc{background:var(--surface);padding:40px 32px;position:relative;transition:background .25s;overflow:hidden;cursor:default}
+.fc::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(212,255,0,.04),transparent);opacity:0;transition:opacity .3s}
+.fc:hover{background:var(--surface2)}
+.fc:hover::after{opacity:1}
+.fc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.fc-num{font-family:var(--fd);font-size:13px;letter-spacing:2px;color:var(--border);transition:color .3s}
+.fc:hover .fc-num{color:var(--acid)}
+.fc-icon{width:44px;height:44px;background:var(--acid-dim);border:1px solid var(--acid-glow);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:22px;transition:all .3s}
+.fc:hover .fc-icon{background:rgba(212,255,0,.12);border-color:rgba(212,255,0,.3)}
+.fc-title{font-family:var(--fd);font-size:22px;letter-spacing:2px;margin-bottom:10px;transition:color .3s}
+.fc:hover .fc-title{color:var(--acid)}
+.fc-desc{font-size:13px;color:var(--muted);line-height:1.75;font-weight:300}
+.fc-tag{display:inline-block;margin-top:14px;font-family:var(--fm);font-size:9px;letter-spacing:2px;color:var(--acid);text-transform:uppercase;opacity:0;transform:translateX(-8px);transition:all .3s}
+.fc:hover .fc-tag{opacity:1;transform:translateX(0)}
+
+/* HOW */
+.hs{padding:100px 0;border-top:1px solid var(--border);background:var(--surface)}
+.how-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:64px;position:relative}
+.how-grid::before{content:'';position:absolute;top:27px;left:12.5%;right:12.5%;height:1px;background:var(--border);z-index:0}
+.how-step{text-align:center;padding:0 20px;position:relative;z-index:1}
+.how-num{width:56px;height:56px;border:2px solid var(--acid);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:26px;color:var(--acid);margin:0 auto 24px;background:var(--surface);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)}
+.how-title{font-family:var(--fd);font-size:18px;letter-spacing:2px;margin-bottom:10px}
+.how-desc{font-size:12px;color:var(--muted);line-height:1.75;font-weight:300}
+
+/* TESTIMONIALS */
+.ts-section{padding:100px 0;border-top:1px solid var(--border)}
+.tg{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:56px}
+.tc{background:var(--surface);border:1px solid var(--border);padding:32px;border-radius:2px;position:relative;overflow:hidden;transition:border-color .3s}
+.tc:hover{border-color:rgba(212,255,0,.2)}
+.tc::before{content:'"';font-family:Georgia,serif;font-size:80px;color:var(--acid);opacity:.12;position:absolute;top:4px;left:18px;line-height:1}
+.tc-stars{display:flex;gap:3px;margin-bottom:14px}
+.tc-star{color:var(--acid);font-size:12px}
+.tc-text{font-size:14px;color:var(--dim);line-height:1.75;margin-bottom:20px;padding-top:8px;font-style:italic;font-weight:300}
+.tc-author{display:flex;align-items:center;gap:12px}
+.tc-av{width:36px;height:36px;border-radius:50%;background:var(--acid-dim);border:1px solid var(--acid-glow);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:16px;color:var(--acid);flex-shrink:0}
+.tc-name{font-family:var(--fm);font-size:10px;letter-spacing:1px;color:var(--text);text-transform:uppercase}
+.tc-pr{font-family:var(--fd);font-size:16px;letter-spacing:1px;color:var(--acid);margin-top:2px}
+
+/* INTEGRATIONS */
+.is{padding:100px 0;border-top:1px solid var(--border);background:var(--surface)}
+.ig{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:56px}
+.ip{display:flex;align-items:center;gap:10px;padding:14px 24px;border:1px solid var(--border);background:var(--bg);font-family:var(--fm);font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .25s;border-radius:2px;color:var(--muted)}
+.ip:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.ip.strava{border-color:rgba(252,76,2,.2);color:#FC4C02}.ip.strava:hover{background:rgba(252,76,2,.06);border-color:rgba(252,76,2,.4)}
+.ip.garmin{border-color:rgba(0,163,224,.2);color:#00A3E0}.ip.garmin:hover{background:rgba(0,163,224,.06);border-color:rgba(0,163,224,.4)}
+.ip.whoop{border-color:rgba(0,232,120,.2);color:#00e878}.ip.whoop:hover{background:rgba(0,232,120,.06);border-color:rgba(0,232,120,.4)}
+.ip.insta{border-color:rgba(228,64,95,.2);color:#e4405f}.ip.insta:hover{background:rgba(228,64,95,.06);border-color:rgba(228,64,95,.4)}
+.ip.ttok{border-color:rgba(255,0,80,.2);color:#ff0050}.ip.ttok:hover{background:rgba(255,0,80,.06);border-color:rgba(255,0,80,.4)}
+.ip-icon{font-size:18px}
+
+/* CTA BAND */
+.ctab{padding:100px 0;background:var(--acid);position:relative;overflow:hidden}
+.ctab::before{content:'8';font-family:var(--fd);font-size:500px;position:absolute;right:-40px;top:50%;transform:translateY(-50%);color:rgba(0,0,0,.05);line-height:1;pointer-events:none}
+.ctab-inner{max-width:760px;margin:0 auto;text-align:center;padding:0 48px;position:relative;z-index:1}
+.ctab-title{font-family:var(--fd);font-size:clamp(56px,9vw,110px);letter-spacing:2px;color:var(--bg);line-height:.9;margin-bottom:16px}
+.ctab-sub{font-size:16px;color:rgba(0,0,0,.5);margin-bottom:40px;font-weight:300}
+.ctab-form{display:flex;gap:0;max-width:460px;margin:0 auto;background:rgba(0,0,0,.1);border-radius:2px;overflow:hidden;border:1px solid rgba(0,0,0,.1)}
+.ctab-input{flex:1;background:transparent;border:none;color:var(--bg);font-family:var(--fb);font-size:14px;padding:16px 18px;outline:none}
+.ctab-input::placeholder{color:rgba(0,0,0,.35)}
+.ctab-btn{background:var(--bg);color:var(--acid);font-family:var(--fd);font-size:18px;letter-spacing:2px;padding:0 28px;border:none;cursor:pointer;transition:all .2s}
+.ctab-btn:hover{background:#111}
+.ctab-perks{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;font-family:var(--fm);font-size:9px;color:rgba(0,0,0,.4);letter-spacing:2px;text-transform:uppercase;margin-top:14px}
+.ctab-perk::before{content:'✓ '}
+
+/* SHARE */
+.ss{padding:80px 0;border-top:1px solid var(--border);background:var(--surface)}
+.share-btns{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:36px}
+.sbtn{display:flex;align-items:center;gap:8px;padding:12px 22px;font-family:var(--fm);font-size:10px;letter-spacing:2px;text-transform:uppercase;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;border-radius:2px;transition:all .2s}
+.sbtn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.3)}
+.sbtn.tiktok{background:#ff0050;border-color:#ff0050;color:#fff}
+.sbtn.ig{background:linear-gradient(135deg,#f09433,#e6683c,#dc2743);border:none;color:#fff}
+.sbtn.strava{background:#FC4C02;border-color:#FC4C02;color:#fff}
+.sbtn.tw{background:#000;border-color:#333;color:#fff}
+
+/* FOOTER */
+footer{padding:72px 0 36px;border-top:1px solid var(--border);background:var(--bg)}
+.fg-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:56px;padding-bottom:48px;border-bottom:1px solid var(--border);margin-bottom:28px}
+.fl{font-family:var(--fd);font-size:28px;letter-spacing:4px;color:var(--acid);margin-bottom:10px}
+.ft{font-family:var(--fm);font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.fd-desc{font-size:13px;color:var(--muted);line-height:1.7;max-width:260px;font-weight:300}
+.fc-label{font-family:var(--fm);font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:16px}
+.fc-links{display:flex;flex-direction:column;gap:10px}
+.flink{font-family:var(--fm);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s;display:flex;align-items:center;gap:8px}
+.flink:hover{color:var(--text)}
+.fb{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.fcopy{font-family:var(--fm);font-size:10px;color:var(--muted);letter-spacing:.5px}
+.flegal{display:flex;gap:18px}
+
+/* BUTTONS */
+.btn-p{background:var(--acid);color:var(--bg);font-family:var(--fd);font-size:18px;letter-spacing:3px;padding:15px 36px;border:none;cursor:pointer;transition:all .2s;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+.btn-p:hover{background:var(--acid2);transform:translateY(-2px)}
+.btn-o{background:transparent;color:var(--text);font-family:var(--fm);font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:15px 32px;border:1px solid var(--border);cursor:pointer;border-radius:2px;transition:all .2s}
+.btn-o:hover{border-color:var(--acid);color:var(--acid)}
+
+/* RESPONSIVE */
+@media(max-width:1024px){.fg{grid-template-columns:repeat(2,1fr)}.nums-inner{grid-template-columns:repeat(2,1fr)}.num-item:nth-child(2){border-right:none}.num-item:nth-child(3){border-top:1px solid rgba(0,0,0,.1)}}
+@media(max-width:768px){
+  nav{padding:0 20px;height:60px}
+  .nav-links{display:none}
+  .nav-mcta{display:block}
+  .hero{padding:0 20px 60px}
+  .hero-station-bg{font-size:180px;right:-20px}
+  .hero-stats{flex-wrap:wrap}
+  .hstat{min-width:50%;padding:16px 0;border-right:none;border-bottom:1px solid var(--border)}
+  .hstat:nth-child(odd){padding-right:16px;border-right:1px solid var(--border)}
+  .sw{padding:0 20px}
+  .fg{grid-template-columns:1fr}
+  .nums-inner{grid-template-columns:repeat(2,1fr)}
+  .how-grid{grid-template-columns:1fr 1fr;gap:32px}
+  .how-grid::before{display:none}
+  .tg{grid-template-columns:1fr}
+  .fg-grid{grid-template-columns:1fr;gap:28px}
+  .fb{flex-direction:column;text-align:center}
+  .flegal{flex-wrap:wrap;justify-content:center}
+  .ctab-inner{padding:0 20px}
+  .cd{flex-wrap:wrap}
+  .cdu{min-width:calc(50% - 2px);flex:1}
+  footer{padding:52px 0 28px}
+  .scroll-ind{display:none}
+}
+@media(max-width:480px){.wf{flex-direction:column}.wi-input{border:1px solid var(--border);border-radius:2px}.wbtn{padding:14px;border-radius:2px}.ctab-form{flex-direction:column}.ctab-btn{padding:14px}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<nav id="nav">
+  <a href="#" class="nav-logo"><span class="blink"></span>STATION8.AI</a>
+  <div class="nav-links">
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#how" class="nav-link">How It Works</a>
+    <a href="#community" class="nav-link">Athletes</a>
+    <a href="station8-v3.html" class="nav-link">Try App</a>
+    <button class="nav-cta" onclick="scrollToWaitlist()">Join Waitlist</button>
+  </div>
+  <button class="nav-mcta" onclick="scrollToWaitlist()">Join</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-orb"></div>
+  <div class="hero-station-bg">8</div>
+  <div class="hero-content">
+    <div class="eyebrow"><span class="eyebrow-line"></span>Beta launching Q3 2026 &middot; 1,247 athletes waiting</div>
+    <h1 class="hero-h">
+      <span class="t1">RACE</span>
+      <span class="t2">SMARTER.</span>
+      <span class="t3">ALWAYS.</span>
+    </h1>
+    <div class="hero-divider"></div>
+    <p class="hero-p">The Hyrox app built around race-day strategy. AI-powered split prediction for all 16 stations. Know your targets before you cross the start line.</p>
+    <div class="hero-btns">
+      <button class="btn-p" onclick="scrollToWaitlist()">JOIN THE WAITLIST</button>
+      <button class="btn-o" onclick="window.location.href='station8-v3.html'">TRY THE APP &rarr;</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><span class="hstat-n" id="counter-athletes">1,247</span><span class="hstat-l">Athletes waiting</span></div>
+      <div class="hstat" style="padding-left:32px"><span class="hstat-n">16</span><span class="hstat-l">Stations tracked</span></div>
+      <div class="hstat" style="padding-left:32px"><span class="hstat-n">8+</span><span class="hstat-l">Devices supported</span></div>
+      <div class="hstat" style="padding-left:32px"><span class="hstat-n">#1</span><span class="hstat-l">Hyrox strategy tool</span></div>
+    </div>
+  </div>
+  <div class="scroll-ind"><div class="scroll-l"></div>Scroll</div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-inner">
+    <span class="ti">Split Predictor<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">AI Race Coach<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">Race Log<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">Device Sync<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">Community Feed<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">Event Finder<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">PR Tracker<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">Leaderboards<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">Split Predictor<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">AI Race Coach<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">Race Log<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">Device Sync<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">Community Feed<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">Event Finder<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">PR Tracker<span class="ts">&nbsp;&middot;</span></span>
+    <span class="ti">Leaderboards<span class="ts">&nbsp;&middot;</span></span>
+  </div>
+</div>
+
+<!-- COUNTDOWN -->
+<section class="cds" id="countdown-section">
+  <div class="sw">
+    <span class="cdl">Beta Launch Countdown</span>
+    <div class="cd">
+      <div class="cdu"><div class="cdn" id="cd-days">00</div><div class="cdsub">Days</div></div>
+      <div class="cdu"><div class="cdn" id="cd-hours">00</div><div class="cdsub">Hours</div></div>
+      <div class="cdu"><div class="cdn" id="cd-mins">00</div><div class="cdsub">Mins</div></div>
+      <div class="cdu"><div class="cdn" id="cd-secs">00</div><div class="cdsub">Secs</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- WAITLIST -->
+<section class="ws" id="waitlist">
+  <div class="wi">
+    <div class="sl-label" style="justify-content:center">Early Access</div>
+    <h2 class="st" style="font-size:clamp(56px,9vw,96px);text-align:center">GET IN<br><em>FIRST</em></h2>
+    <p class="sd" style="text-align:center;margin:14px auto 0">Join the waitlist for early beta access, founding member pricing, and the ability to shape the product before public launch.</p>
+    <div id="waitlist-form-wrap">
+      <div class="wf">
+        <input type="email" class="wi-input" id="email-input" placeholder="your@email.com" onkeypress="if(event.key==='Enter')joinWaitlist()">
+        <button class="wbtn" onclick="joinWaitlist()">JOIN</button>
+      </div>
+    </div>
+    <div class="wsuccess" id="waitlist-success">
+      <h3>YOU'RE IN ⚡</h3>
+      <p>We'll email you when beta opens. Share with training partners to move up the queue.</p>
+    </div>
+    <div class="wperks">
+      <span class="wperk">Free beta access</span>
+      <span class="wperk">Founding member pricing</span>
+      <span class="wperk">Shape the product</span>
+      <span class="wperk">No spam ever</span>
+    </div>
+    <div class="wcount-wrap">
+      <div class="wcount" id="waitlist-num">1,247</div>
+      <div class="wcount-sub">athletes already on the list</div>
+    </div>
+  </div>
+</section>
+
+<!-- NUMBERS -->
+<div class="nums">
+  <div class="nums-inner">
+    <div class="num-item"><div class="num-val">16</div><div class="num-lbl">Stations tracked</div></div>
+    <div class="num-item"><div class="num-val">40+</div><div class="num-lbl">Worldwide events</div></div>
+    <div class="num-item"><div class="num-val">8+</div><div class="num-lbl">Devices supported</div></div>
+    <div class="num-item"><div class="num-val">2 min</div><div class="num-lbl">To your race plan</div></div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="fs" id="features">
+  <div class="sw">
+    <div class="sh">
+      <div class="sl-label">What's Inside</div>
+      <h2 class="st">BUILT FOR<br><em>HYROX ATHLETES</em></h2>
+    </div>
+    <div class="fg">
+      <div class="fc"><div class="fc-top"><span class="fc-num">01</span><div class="fc-icon">&#127919;</div></div><div class="fc-title">SPLIT PREDICTOR</div><div class="fc-desc">AI-generated target times for all 16 stations based on your fitness profile, run strength, and sled confidence. Know every leg before race day.</div><div class="fc-tag">Core feature &rarr;</div></div>
+      <div class="fc"><div class="fc-top"><span class="fc-num">02</span><div class="fc-icon">&#127942;</div></div><div class="fc-title">COMMUNITY RESULTS</div><div class="fc-desc">Real athlete data, not manufactured leaderboards. Post your race, follow others, browse a community feed powered by people who actually race.</div><div class="fc-tag">Community &rarr;</div></div>
+      <div class="fc"><div class="fc-top"><span class="fc-num">03</span><div class="fc-icon">&#8987;</div></div><div class="fc-title">DEVICE SYNC</div><div class="fc-desc">Connect Garmin, Strava, Whoop, Polar and more. Your actual training data refines your race plan with real metrics instead of guesswork.</div><div class="fc-tag">Integrations &rarr;</div></div>
+      <div class="fc"><div class="fc-top"><span class="fc-num">04</span><div class="fc-icon">&#128205;</div></div><div class="fc-title">EVENT FINDER</div><div class="fc-desc">Browse 40+ worldwide Hyrox events. Filter by region, date, category. One-click to generate your race strategy for any event, anywhere.</div><div class="fc-tag">Global &rarr;</div></div>
+      <div class="fc"><div class="fc-top"><span class="fc-num">05</span><div class="fc-icon">&#129302;</div></div><div class="fc-title">AI RACE COACH</div><div class="fc-desc">Post-race analysis tells you exactly which stations cost you time and precisely how to fix them. Brutally honest. Genuinely useful.</div><div class="fc-tag">AI powered &rarr;</div></div>
+      <div class="fc"><div class="fc-top"><span class="fc-num">06</span><div class="fc-icon">&#128202;</div></div><div class="fc-title">PROGRESS TRACKING</div><div class="fc-desc">Log every race, track PRs, unlock achievements, watch your improvement compound over time. Your entire Hyrox career in one place.</div><div class="fc-tag">Long term &rarr;</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="hs" id="how">
+  <div class="sw">
+    <div class="sh" style="text-align:center">
+      <div class="sl-label" style="justify-content:center">Process</div>
+      <h2 class="st">HOW IT<br><em>WORKS</em></h2>
+    </div>
+    <div class="how-grid">
+      <div class="how-step"><div class="how-num">1</div><div class="how-title">SET YOUR GOAL</div><div class="how-desc">Enter your target time, fitness level, and strengths. Station8.AI builds your personalised split strategy in under 2 minutes.</div></div>
+      <div class="how-step"><div class="how-num">2</div><div class="how-title">RACE WITH PRECISION</div><div class="how-desc">Use your station targets on race day. Know exactly when to push and when to conserve across all 16 stations.</div></div>
+      <div class="how-step"><div class="how-num">3</div><div class="how-title">LOG YOUR RESULT</div><div class="how-desc">Post your finish time and splits to the community. Your result helps every other athlete training on the platform.</div></div>
+      <div class="how-step"><div class="how-num">4</div><div class="how-title">IMPROVE &amp; REPEAT</div><div class="how-desc">AI analysis identifies your weak stations. Your next plan is smarter because your last race made it so.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="ts-section" id="community">
+  <div class="sw">
+    <div class="sh">
+      <div class="sl-label">Athletes</div>
+      <h2 class="st">WHAT ATHLETES<br><em>SAY</em></h2>
+    </div>
+    <div class="tg">
+      <div class="tc"><div class="tc-stars"><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span></div><div class="tc-text">Finally an app that treats the race as 16 separate events. I shaved 4 minutes off my time just by pacing the sled push properly for the first time.</div><div class="tc-author"><div class="tc-av">S</div><div><div class="tc-name">Sarah K. &middot; London</div><div class="tc-pr">59:44 PR</div></div></div></div>
+      <div class="tc"><div class="tc-stars"><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span></div><div class="tc-text">The AI coaching after my race was brutal and honest in the best way. It told me exactly why my wall balls destroyed my final run. I needed to hear that.</div><div class="tc-author"><div class="tc-av">M</div><div><div class="tc-name">Marcus R. &middot; New York</div><div class="tc-pr">61:12 PR</div></div></div></div>
+      <div class="tc"><div class="tc-stars"><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span><span class="tc-star">&#9733;</span></div><div class="tc-text">Community-driven data is the right call. Real athletes posting real results is a thousand times more useful than manufactured leaderboards.</div><div class="tc-author"><div class="tc-av">J</div><div><div class="tc-name">Jess T. &middot; Sydney</div><div class="tc-pr">62:38 PR</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- INTEGRATIONS -->
+<section class="is" id="social">
+  <div class="sw">
+    <div class="sh" style="text-align:center">
+      <div class="sl-label" style="justify-content:center">Integrations</div>
+      <h2 class="st">CONNECT<br><em>EVERYTHING</em></h2>
+      <p class="sd" style="margin:14px auto 0;text-align:center">Link your training apps, devices, and social accounts. Station8.AI becomes the central hub for your entire Hyrox life.</p>
+    </div>
+    <div class="ig">
+      <div class="ip strava" onclick="toast('Strava integration coming in beta! Follow @station8ai')"><span class="ip-icon">🏃</span> Strava</div>
+      <div class="ip garmin" onclick="toast('Garmin Connect coming soon! Follow @station8ai')"><span class="ip-icon">&#8987;</span> Garmin</div>
+      <div class="ip whoop" onclick="toast('Whoop integration coming! Follow @station8ai')"><span class="ip-icon">&#128154;</span> Whoop</div>
+      <div class="ip insta" onclick="toast('Follow us on Instagram @station8.ai')"><span class="ip-icon">📸</span> Instagram</div>
+      <div class="ip ttok" onclick="toast('Follow @station8ai on TikTok')"><span class="ip-icon">🎵</span> TikTok</div>
+      <div class="ip" onclick="toast('Follow @station8ai on X')"><span class="ip-icon">&#128038;</span> X / Twitter</div>
+      <div class="ip" onclick="toast('Apple Watch coming in the iOS app!')"><span class="ip-icon">&#127822;</span> Apple Watch</div>
+      <div class="ip" onclick="toast('Polar integration coming soon!')"><span class="ip-icon">&#10084;</span> Polar</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BAND -->
+<section class="ctab">
+  <div class="ctab-inner">
+    <h2 class="ctab-title">KNOW YOUR<br>SPLITS.</h2>
+    <p class="ctab-sub">Join 1,247+ athletes training smarter. Free forever &mdash; no credit card needed.</p>
+    <div class="ctab-form">
+      <input type="email" class="ctab-input" id="email-input-2" placeholder="your@email.com" onkeypress="if(event.key==='Enter')joinWaitlist2()">
+      <button class="ctab-btn" onclick="joinWaitlist2()">JOIN</button>
+    </div>
+    <div class="ctab-perks">
+      <span class="ctab-perk">Free beta access</span>
+      <span class="ctab-perk">Founding member pricing</span>
+      <span class="ctab-perk">No spam ever</span>
+    </div>
+  </div>
+</section>
+
+<!-- SHARE -->
+<section class="ss">
+  <div class="sw" style="text-align:center">
+    <div class="sl-label" style="justify-content:center">Spread the Word</div>
+    <h2 class="st" style="font-size:clamp(40px,6vw,72px)">TELL YOUR<br><em>TRAINING PARTNERS</em></h2>
+    <p style="color:var(--muted);font-size:14px;margin-top:12px;font-weight:300">Share to move up the waitlist and unlock founding member status</p>
+    <div class="share-btns">
+      <button class="sbtn tiktok" onclick="shareToSocial('tiktok')">🎵 TikTok</button>
+      <button class="sbtn ig" onclick="shareToSocial('instagram')">📸 Instagram</button>
+      <button class="sbtn strava" onclick="shareToSocial('strava')">🏃 Strava</button>
+      <button class="sbtn tw" onclick="shareToSocial('twitter')">&#128038; X</button>
+      <button class="sbtn" onclick="copyLink()">🔗 Copy Link</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="sw">
+    <div class="fg-grid">
+      <div>
+        <div class="fl">STATION8.AI</div>
+        <div class="ft">Hyrox Race Intelligence</div>
+        <p class="fd-desc">The only app built around race-day strategy. Know your splits before you cross the start line.</p>
+      </div>
+      <div>
+        <div class="fc-label">Links</div>
+        <div class="fc-links">
+          <a href="#waitlist" class="flink" onclick="scrollToWaitlist()">Join Waitlist</a>
+          <a href="#features" class="flink">Features</a>
+          <a href="#how" class="flink">How It Works</a>
+          <a href="station8-v3.html" class="flink">Try the App</a>
+          <a href="station8-pricing.html" class="flink">Pricing</a>
+          <a href="station8-contact.html" class="flink">Contact</a>
+        </div>
+      </div>
+      <div>
+        <div class="fc-label">Follow Us</div>
+        <div class="fc-links">
+          <a href="https://www.tiktok.com/@station8ai" target="_blank" class="flink"><span>🎵</span> @station8ai</a>
+          <a href="https://www.instagram.com/station8.ai" target="_blank" class="flink"><span>📸</span> @station8.ai</a>
+          <a href="https://www.facebook.com/station8ai" target="_blank" class="flink"><span>&#128101;</span> Station8.AI</a>
+          <a href="https://twitter.com/station8ai" target="_blank" class="flink"><span>&#128038;</span> @station8ai</a>
+          <a href="https://www.strava.com/clubs/station8ai" target="_blank" class="flink"><span>🏃</span> Strava Club</a>
+        </div>
+      </div>
+    </div>
+    <div class="fb">
+      <div class="fcopy">&copy; 2026 Station8.AI &middot; Built for Hyrox athletes &middot; All rights reserved</div>
+      <div class="flegal">
+        <a href="station8-privacy.html" class="flink">Privacy Policy</a>
+        <a href="station8-terms.html" class="flink">Terms of Use</a>
+        <a href="station8-contact.html" class="flink">Contact</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// NAV scroll
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>40),{passive:true});
+
+// COUNTDOWN
+const LAUNCH=new Date('2026-09-01T00:00:00');
+function updateCD(){
+  const d=LAUNCH-new Date();
+  if(d<=0){document.getElementById('countdown-section').innerHTML='<div style="font-family:var(--fd);font-size:60px;color:var(--acid);text-align:center;letter-spacing:4px;padding:40px">LAUNCHED 🚀</div>';return;}
+  document.getElementById('cd-days').textContent=String(Math.floor(d/86400000)).padStart(2,'0');
+  document.getElementById('cd-hours').textContent=String(Math.floor((d%86400000)/3600000)).padStart(2,'0');
+  document.getElementById('cd-mins').textContent=String(Math.floor((d%3600000)/60000)).padStart(2,'0');
+  document.getElementById('cd-secs').textContent=String(Math.floor((d%60000)/1000)).padStart(2,'0');
+}
+updateCD();setInterval(updateCD,1000);
+
+// COUNTER
+function animCount(el,target,dur=2000){
+  let s=0;const step=target/(dur/16);
+  const t=setInterval(()=>{s=Math.min(s+step,target);el.textContent=Math.floor(s).toLocaleString();if(s>=target)clearInterval(t);},16);
+}
+const cobs=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){animCount(document.getElementById('counter-athletes'),1247);cobs.disconnect();}});},{threshold:.3});
+const hel=document.querySelector('.hero-stats');if(hel)cobs.observe(hel);
+
+// WAITLIST
+let wc=parseInt(localStorage.getItem('station8-waitlist-count')||'1247');
+document.getElementById('waitlist-num').textContent=wc.toLocaleString();
+
+async function submitEmail(email){
+  const emails=JSON.parse(localStorage.getItem('station8-emails')||'[]');
+  if(emails.includes(email)){toast("You're already on the list! ⚡");return;}
+  if(_sbc){try{await _sbc.from('waitlist').insert([{email,signed_up_at:new Date().toISOString(),source:'landing_page'}]);}catch(e){}}
+  emails.push(email);localStorage.setItem('station8-emails',JSON.stringify(emails));
+  wc++;localStorage.setItem('station8-waitlist-count',String(wc));
+  document.getElementById('waitlist-form-wrap').style.display='none';
+  const s=document.getElementById('waitlist-success');
+  s.style.display='block';
+  s.innerHTML=`<h3>YOU'RE #${wc} ⚡</h3><p>On the list at position <strong style="color:var(--acid)">#${wc}</strong>. We'll email <strong>${email}</strong> when beta opens.</p>`;
+  document.getElementById('waitlist-num').textContent=wc.toLocaleString();
+  toast('Welcome to Station8.AI! 🏁');
+}
+async function joinWaitlist(){const e=document.getElementById('email-input').value.trim();if(!e||!e.includes('@')){toast('Enter a valid email');return;}await submitEmail(e);}
+async function joinWaitlist2(){const e=document.getElementById('email-input-2').value.trim();if(!e||!e.includes('@')){toast('Enter a valid email');return;}await submitEmail(e);}
+function scrollToWaitlist(){document.getElementById('waitlist').scrollIntoView({behavior:'smooth'});setTimeout(()=>document.getElementById('email-input')?.focus(),600);}
+
+// SHARE
+const SURL='https://station8.ai';
+const STXT='Just joined the waitlist for Station8.AI — the Hyrox app that knows every split before race day 🏁⚡ Join me:';
+function shareToSocial(p){
+  const u={tiktok:'https://www.tiktok.com/share?url='+encodeURIComponent(SURL)+'&text='+encodeURIComponent(STXT),twitter:'https://twitter.com/intent/tweet?text='+encodeURIComponent(STXT+' '+SURL)+'&hashtags=Hyrox,Station8AI',strava:'https://www.strava.com/'};
+  if(p==='instagram'){copyLink();toast('Link copied! Paste in your Instagram story 📸');return;}
+  window.open(u[p],'_blank');toast('Thanks for spreading the word! 🚀');
+}
+function copyLink(){navigator.clipboard.writeText(SURL).then(()=>toast('Link copied! 🔗')).catch(()=>toast('station8.ai — share this link!'));}
+
+// TOAST
+function toast(msg){const t=document.getElementById('toast');t.innerHTML=msg;t.style.background='var(--acid)';t.style.color='var(--bg)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+
+// SCROLL ANIMATIONS
+const fels=document.querySelectorAll('.fc,.how-step,.tc,.ip,.num-item');
+const sobs=new IntersectionObserver(entries=>{entries.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>{e.target.style.opacity='1';e.target.style.transform='translateY(0)';},i*55);sobs.unobserve(e.target);}});},{threshold:.06});
+fels.forEach(el=>{el.style.opacity='0';el.style.transform='translateY(24px)';el.style.transition='opacity .55s ease, transform .55s ease';sobs.observe(el);});
+</script>
+</body>
+</html>
